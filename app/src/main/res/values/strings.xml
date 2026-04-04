@@ -1,3 +1,20 @@
 <resources>
-    <string name="app_name">hits-processes-2</string>
+    <string name="app_name">HITS LMS</string>
+    <string name="auth_subtitle">Войдите в аккаунт или создайте новый профиль</string>
+    <string name="tab_login">Вход</string>
+    <string name="tab_register">Регистрация</string>
+    <string name="email">Email</string>
+    <string name="password">Пароль</string>
+    <string name="first_name">Имя</string>
+    <string name="last_name">Фамилия</string>
+    <string name="login_button">Войти</string>
+    <string name="register_button">Зарегистрироваться</string>
+    <string name="logout_button">Выйти</string>
+    <string name="show_password">Показать</string>
+    <string name="hide_password">Скрыть</string>
+    <string name="email_error">Введите корректный email</string>
+    <string name="password_error">Пароль должен содержать от 8 до 32 символов</string>
+    <string name="name_error">Только кириллица, от 2 до 32 символов</string>
+    <string name="home_title">Авторизация выполнена</string>
+    <string name="home_description">Токены сохранены локально, автообновление access token подключено, logout очищает сессию.</string>
 </resources>
