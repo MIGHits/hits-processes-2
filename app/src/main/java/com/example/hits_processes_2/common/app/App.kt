@@ -3,6 +3,7 @@ package com.example.hits_processes_2.common.app
 import android.app.Application
 import com.example.hits_processes_2.common.network.networkModule
 import com.example.hits_processes_2.feature.authorization.authorizationModule
+import com.example.hits_processes_2.feature.courses.coursesModule
 import com.example.hits_processes_2.feature.home.homeModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
@@ -17,6 +18,7 @@ class App : Application() {
             modules(
                 networkModule,
                 authorizationModule,
+                coursesModule,
                 homeModule,
             )
         }

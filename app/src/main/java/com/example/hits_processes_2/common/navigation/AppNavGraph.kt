@@ -5,7 +5,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.hits_processes_2.feature.authorization.presentation.AuthorizationScreen
-import com.example.hits_processes_2.feature.home.presentation.HomeScreen
+import com.example.hits_processes_2.feature.courses.presentation.CoursesRoot
 
 @Composable
 fun AppNavGraph(
@@ -19,7 +19,7 @@ fun AppNavGraph(
         composable(ScreenRoute.Authorization.route) {
             AuthorizationScreen(
                 onAuthSuccess = {
-                    navController.navigate(ScreenRoute.Home.route) {
+                    navController.navigate(ScreenRoute.Courses.route) {
                         popUpTo(ScreenRoute.Authorization.route) { inclusive = true }
                         launchSingleTop = true
                     }
@@ -27,8 +27,8 @@ fun AppNavGraph(
             )
         }
 
-        composable(ScreenRoute.Home.route) {
-            HomeScreen(
+        composable(ScreenRoute.Courses.route) {
+            CoursesRoot(
                 onLoggedOut = {
                     navController.navigate(ScreenRoute.Authorization.route) {
                         popUpTo(0) { inclusive = true }

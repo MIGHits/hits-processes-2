@@ -23,7 +23,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         val startDestination = if (tokenStorage.getTokens() != null) {
-            ScreenRoute.Home.route
+            ScreenRoute.Courses.route
         } else {
             ScreenRoute.Authorization.route
         }
