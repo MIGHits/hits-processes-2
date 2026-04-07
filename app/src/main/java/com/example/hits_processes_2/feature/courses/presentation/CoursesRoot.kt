@@ -67,6 +67,7 @@ import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun CoursesRoot(
+    onCourseClick: (String) -> Unit,
     onLoggedOut: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -98,7 +99,7 @@ fun CoursesRoot(
         state = state,
         createDialogState = createDialogState,
         joinDialogState = joinDialogState,
-        onCourseClick = {},
+        onCourseClick = onCourseClick,
         onProfileClick = {},
         onRefresh = viewModel::refresh,
         onLogoutAction = viewModel::logout,
