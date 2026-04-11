@@ -17,4 +17,9 @@
     <string name="name_error">Только кириллица, от 2 до 32 символов</string>
     <string name="home_title">Авторизация выполнена</string>
     <string name="home_description">Токены сохранены локально, автообновление access token подключено, logout очищает сессию.</string>
+    <string name="file_attachment_label">Attached files</string>
+    <string name="file_attachment_hint">Upload files</string>
+    <string name="file_attachment_select_button">Choose files</string>
+    <string name="file_attachment_remove_content_description">Remove file</string>
+    <string name="file_attachment_default_name">File</string>
 </resources>
