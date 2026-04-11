@@ -9,7 +9,6 @@ import androidx.navigation.navArgument
 import com.example.hits_processes_2.feature.authorization.presentation.AuthorizationScreen
 import com.example.hits_processes_2.feature.course_detail.presentation.CourseDetailsRoot
 import com.example.hits_processes_2.feature.courses.presentation.CoursesRoot
-import com.example.hits_processes_2.feature.home.presentation.HomeScreen
 import com.example.hits_processes_2.feature.task_creation.presentation.TaskCreationScreen
 
 @Composable
@@ -56,11 +55,24 @@ fun AppNavGraph(
             CourseDetailsRoot(
                 courseId = courseId,
                 onNavigateBack = navController::navigateUp,
+                onCreateTask = {
+                    navController.navigate(ScreenRoute.TaskCreation.createRoute(courseId))
+                },
             )
         }
 
-        composable(ScreenRoute.TaskCreation.route) {
+        composable(
+            route = ScreenRoute.TaskCreation.destinationRoute,
+            arguments = listOf(
+                navArgument(ScreenRoute.TaskCreation.COURSE_ID_ARG) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+            ),
+        ) { backStackEntry ->
             TaskCreationScreen(
+                courseId = backStackEntry.arguments?.getString(ScreenRoute.TaskCreation.COURSE_ID_ARG),
                 onNavigateBack = { navController.popBackStack() },
             )
         }
