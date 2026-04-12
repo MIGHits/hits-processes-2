@@ -3,6 +3,7 @@ package com.example.hits_processes_2.feature.file_attachment.data.remote
 import android.content.ContentResolver
 import android.content.Context
 import android.net.Uri
+import com.example.hits_processes_2.feature.file_attachment.data.progress.ProgressRequestBody
 import com.example.hits_processes_2.feature.file_attachment.domain.model.FileAttachmentUpload
 import okhttp3.MediaType
 import okhttp3.MediaType.Companion.toMediaType
@@ -12,13 +13,17 @@ import okhttp3.RequestBody
 import okio.BufferedSink
 import okio.source
 import java.io.IOException
+import androidx.core.net.toUri
 
 class FileMultipartFactory(
     private val context: Context,
 ) {
 
-    fun create(file: FileAttachmentUpload): MultipartBody.Part {
-        val uri = Uri.parse(file.uriString)
+    fun create(
+        file: FileAttachmentUpload,
+        onProgress: (Int) -> Unit = {},
+    ): MultipartBody.Part {
+        val uri = file.uriString.toUri()
         val mimeType = context.contentResolver.getType(uri)
             ?.toMediaTypeOrNull()
             ?: DEFAULT_MEDIA_TYPE
@@ -26,10 +31,17 @@ class FileMultipartFactory(
         return MultipartBody.Part.createFormData(
             name = FILE_PART_NAME,
             filename = file.fileName,
-            body = ContentUriRequestBody(
-                contentResolver = context.contentResolver,
-                uri = uri,
-                contentType = mimeType,
+            body = ProgressRequestBody(
+                delegate = ContentUriRequestBody(
+                    contentResolver = context.contentResolver,
+                    uri = uri,
+                    contentType = mimeType,
+                ),
+                onProgress = { writtenBytes, totalBytes ->
+                    if (totalBytes > 0L) {
+                        onProgress(((writtenBytes * 100) / totalBytes).toInt().coerceIn(0, 100))
+                    }
+                },
             ),
         )
     }
@@ -51,7 +63,7 @@ class FileMultipartFactory(
         override fun writeTo(sink: BufferedSink) {
             contentResolver.openInputStream(uri)?.use { inputStream ->
                 sink.writeAll(inputStream.source())
-            } ?: throw IOException()
+            } ?: throw IOException("Unable to open input stream for $uri")
         }
     }
 

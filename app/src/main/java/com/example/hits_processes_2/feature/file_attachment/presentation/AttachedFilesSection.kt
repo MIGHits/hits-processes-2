@@ -1,12 +1,9 @@
 package com.example.hits_processes_2.feature.file_attachment.presentation
 
-import android.content.Context
-import android.net.Uri
-import android.provider.OpenableColumns
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -17,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material3.Icon
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
@@ -29,7 +27,6 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.hits_processes_2.R
@@ -40,23 +37,16 @@ fun AttachedFilesSection(
     files: List<SelectedFileAttachment>,
     onFilesSelected: (List<SelectedFileAttachment>) -> Unit,
     onFileRemoved: (Int) -> Unit,
+    onPermissionDenied: (String) -> Unit = {},
 ) {
-    val context = LocalContext.current
     val dashedBorderColor = MaterialTheme.colorScheme.outline
-
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetMultipleContents(),
-    ) { uris: List<Uri> ->
-        val selectedFiles = uris.map { uri ->
-            SelectedFileAttachment(
-                name = resolveFileName(context, uri),
-                uriString = uri.toString(),
-            )
-        }
-        if (selectedFiles.isNotEmpty()) {
-            onFilesSelected(selectedFiles)
-        }
-    }
+    val pickerState = rememberFileAttachmentPicker(
+        onFilesPicked = { selectedFiles ->
+            val mergedFiles = (files + selectedFiles).distinctBy { it.uriString }
+            onFilesSelected(mergedFiles)
+        },
+        onPermissionDenied = onPermissionDenied,
+    )
 
     Column {
         Text(
@@ -124,23 +114,32 @@ fun AttachedFilesSection(
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
-            OutlinedButton(
-                onClick = { launcher.launch("*/*") },
-                shape = RoundedCornerShape(8.dp),
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(text = stringResource(R.string.file_attachment_select_button))
+                OutlinedButton(
+                    onClick = pickerState::launchDocuments,
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(text = stringResource(R.string.file_attachment_select_button))
+                }
+
+                OutlinedButton(
+                    onClick = pickerState::launchGallery,
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PhotoLibrary,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(modifier = Modifier.size(6.dp))
+                    Text(text = stringResource(R.string.file_attachment_gallery_button))
+                }
             }
         }
     }
-}
-
-private fun resolveFileName(context: Context, uri: Uri): String {
-    var name = context.getString(R.string.file_attachment_default_name)
-    context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-        val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-        if (nameIndex != -1 && cursor.moveToFirst()) {
-            name = cursor.getString(nameIndex)
-        }
-    }
-    return name
 }
