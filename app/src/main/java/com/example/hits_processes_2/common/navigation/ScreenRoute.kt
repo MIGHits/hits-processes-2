@@ -6,4 +6,6 @@ sealed class ScreenRoute(val route: String) {
     data object CourseDetails : ScreenRoute("course/{courseId}") {
         fun createRoute(courseId: String): String = "course/$courseId"
     }
+    data object Home : ScreenRoute("home")
+    data object TaskCreation : ScreenRoute("task_creation")
 }

@@ -1,0 +1,8 @@
+<resources>
+    <plurals name="file_attachment_upload_complete_text">
+        <item quantity="one">Загружен %d файл</item>
+        <item quantity="few">Загружено %d файла</item>
+        <item quantity="many">Загружено %d файлов</item>
+        <item quantity="other">Загружено %d файла</item>
+    </plurals>
+</resources>
