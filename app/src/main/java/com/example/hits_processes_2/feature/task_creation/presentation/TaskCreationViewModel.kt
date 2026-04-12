@@ -64,7 +64,7 @@ class TaskCreationViewModel(
             }
 
             is TaskCreationUiEvent.TeamCountChanged -> updateState {
-                copy(teamCount = event.count.coerceAtLeast(1))
+                copy(teamCount = event.count.filter(Char::isDigit))
             }
 
             TaskCreationUiEvent.TeamFormationDropdownToggled -> updateState {
@@ -81,6 +81,7 @@ class TaskCreationViewModel(
         val snapshot = _state.value
         val resolvedCourseId = courseId?.takeIf(String::isNotBlank)
         val maxScore = snapshot.maxScore.toIntOrNull()
+        val teamCount = snapshot.teamCount.toIntOrNull()
 
         when {
             resolvedCourseId == null -> showError(R.string.task_creation_error_course_not_found)
@@ -89,10 +90,11 @@ class TaskCreationViewModel(
             maxScore == null || maxScore !in 1..100 -> showError(R.string.task_creation_error_invalid_max_score)
             snapshot.deadlineMillis == null -> showError(R.string.task_creation_error_deadline_required)
             snapshot.teamFormationRule == null -> showError(R.string.task_creation_error_team_rule_required)
-            snapshot.teamCount !in 1..50 -> showError(R.string.task_creation_error_invalid_team_count)
+            teamCount == null || teamCount <= 0 -> showError(R.string.task_creation_error_invalid_team_count)
             else -> submitTask(
                 courseId = resolvedCourseId,
                 maxScore = maxScore,
+                teamCount = teamCount,
                 snapshot = snapshot,
             )
         }
@@ -101,6 +103,7 @@ class TaskCreationViewModel(
     private fun submitTask(
         courseId: String,
         maxScore: Int,
+        teamCount: Int,
         snapshot: TaskCreationUiState,
     ) {
         viewModelScope.launch {
@@ -130,7 +133,7 @@ class TaskCreationViewModel(
                     maxScore = maxScore,
                     deadlineTimeIso = Instant.ofEpochMilli(snapshot.deadlineMillis!!).toString(),
                     teamFormationType = snapshot.teamFormationRule!!.toDomain(),
-                    teamsAmount = snapshot.teamCount,
+                    teamsAmount = teamCount,
                     fileIds = uploadedFileIds,
                 ),
             )

@@ -48,7 +48,8 @@ fun TeamFormationDropdown(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .onSizeChanged { anchorWidthPx = it.width },
+                .onSizeChanged { anchorWidthPx = it.width }
+                .clickable(onClick = onToggle),
         ) {
             TextField(
                 value = selected?.displayText() ?: "",
@@ -66,11 +67,6 @@ fun TeamFormationDropdown(
                 },
                 shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
                 colors = taskCreationFieldColors(),
-            )
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clickable(onClick = onToggle),
             )
             DropdownMenu(
                 expanded = expanded,

@@ -8,14 +8,14 @@ import com.example.hits_processes_2.R
 
 @Composable
 fun TeamCountField(
-    count: Int,
-    onCountChange: (Int) -> Unit,
+    count: String,
+    onCountChange: (String) -> Unit,
 ) {
     LabeledTextField(
         label = stringResource(R.string.task_creation_team_count_label),
         placeholder = "",
-        value = count.toString(),
-        onValueChange = { input -> input.toIntOrNull()?.let(onCountChange) },
+        value = count,
+        onValueChange = onCountChange,
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
     )

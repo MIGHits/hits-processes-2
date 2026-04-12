@@ -81,7 +81,11 @@ fun DeadlineField(
             style = MaterialTheme.typography.labelLarge,
             modifier = Modifier.padding(bottom = 4.dp),
         )
-        Box(modifier = Modifier.fillMaxWidth()) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { showDatePicker() },
+        ) {
             TextField(
                 value = displayText,
                 onValueChange = {},
@@ -98,11 +102,6 @@ fun DeadlineField(
                 },
                 shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
                 colors = taskCreationFieldColors(),
-            )
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clickable { showDatePicker() },
             )
         }
     }
