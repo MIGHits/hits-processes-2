@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -45,6 +46,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.example.hits_processes_2.common.ui.component.MainFloatingActionButton
 import com.example.hits_processes_2.feature.course_detail.domain.model.CourseDetailsRole
 import com.example.hits_processes_2.feature.course_detail.domain.model.CourseParticipant
 import com.example.hits_processes_2.feature.course_detail.domain.model.CourseTask
@@ -55,6 +57,7 @@ import org.koin.core.parameter.parametersOf
 fun CourseDetailsRoot(
     courseId: String,
     onNavigateBack: () -> Unit,
+    onCreateTask: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val viewModel: CourseDetailsViewModel = koinViewModel(parameters = { parametersOf(courseId) })
@@ -72,6 +75,7 @@ fun CourseDetailsRoot(
         onEditCourseDescriptionChanged = viewModel::onEditCourseDescriptionChanged,
         onSubmitEditCourse = viewModel::submitCourseEdit,
         onTaskClick = {},
+        onCreateTask = onCreateTask,
         onPromoteParticipant = viewModel::promoteParticipant,
         onDemoteParticipant = viewModel::demoteParticipant,
         modifier = modifier,
@@ -91,12 +95,15 @@ fun CourseDetailsContent(
     onEditCourseDescriptionChanged: (String) -> Unit,
     onSubmitEditCourse: () -> Unit,
     onTaskClick: (String) -> Unit,
+    onCreateTask: () -> Unit,
     onPromoteParticipant: (CourseParticipant) -> Unit,
     onDemoteParticipant: (CourseParticipant) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val course = state.course
     var selectedTabIndex by rememberSaveable { androidx.compose.runtime.mutableIntStateOf(0) }
+    val isTeacher = course?.currentUserRole == CourseDetailsRole.TEACHER ||
+        course?.currentUserRole == CourseDetailsRole.HEAD_TEACHER
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -128,6 +135,14 @@ fun CourseDetailsContent(
                     }
                 },
             )
+        },
+        floatingActionButton = {
+            if (isTeacher && selectedTabIndex == 0 && !state.isLoading) {
+                MainFloatingActionButton(
+                    onClick = onCreateTask,
+                    icon = Icons.Default.Add,
+                )
+            }
         },
     ) { paddingValues ->
         when {
