@@ -11,6 +11,5 @@ sealed interface TaskDetailUiEvent {
     data object SubmitClicked : TaskDetailUiEvent
     data object CancelSubmissionClicked : TaskDetailUiEvent
     data object TeamsClicked : TaskDetailUiEvent
-    data object EvaluateClicked : TaskDetailUiEvent
     data object EditClicked : TaskDetailUiEvent
 }
