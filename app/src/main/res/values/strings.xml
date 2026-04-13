@@ -71,4 +71,27 @@
     <string name="file_attachment_download_notification_progress">Скачивание...</string>
     <string name="file_attachment_download_complete_title">Скачивание завершено</string>
     <string name="file_attachment_download_error_title">Ошибка скачивания</string>
+    <string name="task_detail_screen_title">Задание</string>
+    <string name="task_detail_error_load">Не удалось загрузить задание</string>
+    <string name="task_detail_download_started">Скачивание файла началось</string>
+    <string name="task_detail_title_label">Название задания</string>
+    <string name="task_detail_text_label">Текст задания</string>
+    <string name="task_detail_author_label">Автор</string>
+    <string name="task_detail_deadline_label">Дедлайн</string>
+    <string name="task_detail_max_score_label">Максимальный балл</string>
+    <string name="task_detail_team_formation_label">Правила формирования команд</string>
+    <string name="task_detail_attached_files_label">Прикреплённые файлы</string>
+    <string name="task_detail_files_empty">Файлы не прикреплены</string>
+    <string name="task_detail_submission_title">Сдача задания</string>
+    <string name="task_detail_submission_hint">API сдачи решения пока не готово, но секция прикрепления файлов уже подготовлена.</string>
+    <string name="task_detail_submit_button">Сдать задание</string>
+    <string name="task_detail_cancel_submission_button">Отменить сдачу</string>
+    <string name="task_detail_submission_unavailable">API сдачи решения пока недоступно</string>
+    <string name="task_detail_submission_cleared">Выбранные файлы очищены</string>
+    <string name="task_detail_teams_button">Команды</string>
+    <string name="task_detail_evaluate_button">Оценить задание</string>
+    <string name="task_detail_edit_button">Редактировать задание</string>
+    <string name="task_detail_teams_unavailable">Экран команд пока недоступен</string>
+    <string name="task_detail_evaluate_unavailable">Оценивание задания пока недоступно</string>
+    <string name="task_detail_edit_unavailable">Редактирование задания пока недоступно</string>
 </resources>
