@@ -55,7 +55,9 @@ class TaskDetailViewModel(
                 sendMessage(R.string.task_detail_submission_cleared)
             }
             TaskDetailUiEvent.TeamsClicked -> sendMessage(R.string.task_detail_teams_unavailable)
-            TaskDetailUiEvent.EditClicked -> sendMessage(R.string.task_detail_edit_unavailable)
+            TaskDetailUiEvent.EditClicked -> {
+                sendEffect(TaskDetailUiEffect.NavigateToEdit(courseId, taskId))
+            }
         }
     }
 

@@ -9,6 +9,7 @@ import androidx.navigation.navArgument
 import com.example.hits_processes_2.feature.authorization.presentation.AuthorizationScreen
 import com.example.hits_processes_2.feature.course_detail.presentation.CourseDetailsRoot
 import com.example.hits_processes_2.feature.courses.presentation.CoursesRoot
+import com.example.hits_processes_2.feature.task_edit.presentation.TaskEditScreen
 import com.example.hits_processes_2.feature.profile.presentation.ProfileRoot
 import com.example.hits_processes_2.feature.task_detail.presentation.TaskDetailRoot
 import com.example.hits_processes_2.feature.task_creation.presentation.TaskCreationScreen
@@ -102,6 +103,23 @@ fun AppNavGraph(
                 courseId = backStackEntry.arguments?.getString(ScreenRoute.TaskDetail.COURSE_ID_ARG).orEmpty(),
                 taskId = backStackEntry.arguments?.getString(ScreenRoute.TaskDetail.TASK_ID_ARG).orEmpty(),
                 userRoleName = backStackEntry.arguments?.getString(ScreenRoute.TaskDetail.ROLE_ARG).orEmpty(),
+                onNavigateToEdit = { courseId, taskId ->
+                    navController.navigate(ScreenRoute.TaskEdit.createRoute(courseId, taskId))
+                },
+                onNavigateBack = { navController.popBackStack() },
+            )
+        }
+
+        composable(
+            route = ScreenRoute.TaskEdit.route,
+            arguments = listOf(
+                navArgument(ScreenRoute.TaskEdit.COURSE_ID_ARG) { type = NavType.StringType },
+                navArgument(ScreenRoute.TaskEdit.TASK_ID_ARG) { type = NavType.StringType },
+            ),
+        ) { backStackEntry ->
+            TaskEditScreen(
+                courseId = backStackEntry.arguments?.getString(ScreenRoute.TaskEdit.COURSE_ID_ARG).orEmpty(),
+                taskId = backStackEntry.arguments?.getString(ScreenRoute.TaskEdit.TASK_ID_ARG).orEmpty(),
                 onNavigateBack = { navController.popBackStack() },
             )
         }
