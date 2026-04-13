@@ -57,6 +57,7 @@ import org.koin.core.parameter.parametersOf
 fun CourseDetailsRoot(
     courseId: String,
     onNavigateBack: () -> Unit,
+    onTaskClick: (String, CourseDetailsRole) -> Unit,
     onCreateTask: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -74,7 +75,11 @@ fun CourseDetailsRoot(
         onEditCourseNameChanged = viewModel::onEditCourseNameChanged,
         onEditCourseDescriptionChanged = viewModel::onEditCourseDescriptionChanged,
         onSubmitEditCourse = viewModel::submitCourseEdit,
-        onTaskClick = {},
+        onTaskClick = { taskId ->
+            state.course?.currentUserRole?.let { role ->
+                onTaskClick(taskId, role)
+            }
+        },
         onCreateTask = onCreateTask,
         onPromoteParticipant = viewModel::promoteParticipant,
         onDemoteParticipant = viewModel::demoteParticipant,

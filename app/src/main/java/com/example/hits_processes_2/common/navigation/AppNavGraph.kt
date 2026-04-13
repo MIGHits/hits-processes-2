@@ -9,6 +9,7 @@ import androidx.navigation.navArgument
 import com.example.hits_processes_2.feature.authorization.presentation.AuthorizationScreen
 import com.example.hits_processes_2.feature.course_detail.presentation.CourseDetailsRoot
 import com.example.hits_processes_2.feature.courses.presentation.CoursesRoot
+import com.example.hits_processes_2.feature.task_detail.presentation.TaskDetailRoot
 import com.example.hits_processes_2.feature.task_creation.presentation.TaskCreationScreen
 
 @Composable
@@ -55,9 +56,37 @@ fun AppNavGraph(
             CourseDetailsRoot(
                 courseId = courseId,
                 onNavigateBack = navController::navigateUp,
+                onTaskClick = { taskId, role ->
+                    navController.navigate(
+                        ScreenRoute.TaskDetail.createRoute(
+                            courseId = courseId,
+                            taskId = taskId,
+                            role = role.name,
+                        ),
+                    )
+                },
                 onCreateTask = {
                     navController.navigate(ScreenRoute.TaskCreation.createRoute(courseId))
                 },
+            )
+        }
+
+        composable(
+            route = ScreenRoute.TaskDetail.route,
+            arguments = listOf(
+                navArgument(ScreenRoute.TaskDetail.COURSE_ID_ARG) { type = NavType.StringType },
+                navArgument(ScreenRoute.TaskDetail.TASK_ID_ARG) { type = NavType.StringType },
+                navArgument(ScreenRoute.TaskDetail.ROLE_ARG) {
+                    type = NavType.StringType
+                    defaultValue = "STUDENT"
+                },
+            ),
+        ) { backStackEntry ->
+            TaskDetailRoot(
+                courseId = backStackEntry.arguments?.getString(ScreenRoute.TaskDetail.COURSE_ID_ARG).orEmpty(),
+                taskId = backStackEntry.arguments?.getString(ScreenRoute.TaskDetail.TASK_ID_ARG).orEmpty(),
+                userRoleName = backStackEntry.arguments?.getString(ScreenRoute.TaskDetail.ROLE_ARG).orEmpty(),
+                onNavigateBack = { navController.popBackStack() },
             )
         }
 
