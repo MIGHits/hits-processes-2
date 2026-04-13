@@ -67,7 +67,6 @@ fun TaskDetailContent(
         } else {
             TeacherTaskActionsSection(
                 onTeamsClicked = { onEvent(TaskDetailUiEvent.TeamsClicked) },
-                onEvaluateClicked = { onEvent(TaskDetailUiEvent.EvaluateClicked) },
                 onEditClicked = { onEvent(TaskDetailUiEvent.EditClicked) },
             )
         }
