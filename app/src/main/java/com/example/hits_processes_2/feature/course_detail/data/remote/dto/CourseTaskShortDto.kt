@@ -8,4 +8,5 @@ data class CourseTaskShortDto(
     @SerialName("id") val id: String,
     @SerialName("title") val title: String = "",
     @SerialName("text") val text: String = "",
+    @SerialName("createdAt") val createdAt: String? = null,
 )

@@ -19,7 +19,14 @@ fun CourseDetailsDto.toDomain(): CourseDetails = CourseDetails(
     currentUserRole = currentUserCourseRole?.toDomain() ?: CourseDetailsRole.STUDENT,
 )
 
-fun CourseTaskShortListDto.toDomain(): List<CourseTask> = tasks.map(CourseTaskShortDto::toDomain)
+fun CourseTaskShortListDto.toDomain(): List<CourseTask> {
+    val orderedTasks = if (tasks.any { it.createdAt != null }) {
+        tasks.sortedByDescending { it.createdAt.orEmpty() }
+    } else {
+        tasks.asReversed()
+    }
+    return orderedTasks.map(CourseTaskShortDto::toDomain)
+}
 
 fun CourseTaskShortDto.toDomain(): CourseTask = CourseTask(
     id = id,
