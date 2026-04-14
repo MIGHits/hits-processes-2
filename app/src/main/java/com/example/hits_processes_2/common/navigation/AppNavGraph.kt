@@ -9,6 +9,7 @@ import androidx.navigation.navArgument
 import com.example.hits_processes_2.feature.authorization.presentation.AuthorizationScreen
 import com.example.hits_processes_2.feature.course_detail.presentation.CourseDetailsRoot
 import com.example.hits_processes_2.feature.courses.presentation.CoursesRoot
+import com.example.hits_processes_2.feature.profile.presentation.ProfileRoot
 import com.example.hits_processes_2.feature.task_detail.presentation.TaskDetailRoot
 import com.example.hits_processes_2.feature.task_creation.presentation.TaskCreationScreen
 
@@ -37,6 +38,21 @@ fun AppNavGraph(
                 onCourseClick = { courseId ->
                     navController.navigate(ScreenRoute.CourseDetails.createRoute(courseId))
                 },
+                onProfileClick = {
+                    navController.navigate(ScreenRoute.Profile.route)
+                },
+                onLoggedOut = {
+                    navController.navigate(ScreenRoute.Authorization.route) {
+                        popUpTo(0) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+            )
+        }
+
+        composable(ScreenRoute.Profile.route) {
+            ProfileRoot(
+                onNavigateBack = { navController.popBackStack() },
                 onLoggedOut = {
                     navController.navigate(ScreenRoute.Authorization.route) {
                         popUpTo(0) { inclusive = true }

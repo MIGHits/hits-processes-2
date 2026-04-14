@@ -14,7 +14,7 @@ fun CourseShortDto.toDomain(): CourseShort = CourseShort(
     id = id,
     name = name,
     description = description,
-    currentUserRole = currentUserCourseRole?.toDomain() ?: CourseRole.STUDENT,
+    currentUserRole = currentUserCourseRole?.toDomain(),
 )
 
 fun CourseRoleDto.toDomain(): CourseRole = when (this) {

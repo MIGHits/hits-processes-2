@@ -13,6 +13,7 @@ import com.example.hits_processes_2.feature.courses.coursesModule
 import com.example.hits_processes_2.feature.file_attachment.fileAttachmentModule
 import com.example.hits_processes_2.feature.file_attachment.service.FileTransferService
 import com.example.hits_processes_2.feature.home.homeModule
+import com.example.hits_processes_2.feature.profile.profileModule
 import com.example.hits_processes_2.feature.task_detail.taskDetailModule
 import com.example.hits_processes_2.feature.task_creation.taskCreationModule
 import org.koin.android.ext.koin.androidContext
@@ -34,6 +35,7 @@ class App : Application() {
                 coursesModule,
                 fileAttachmentModule,
                 homeModule,
+                profileModule,
                 taskDetailModule,
                 taskCreationModule,
             )

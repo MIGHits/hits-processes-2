@@ -68,6 +68,7 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun CoursesRoot(
     onCourseClick: (String) -> Unit,
+    onProfileClick: () -> Unit,
     onLoggedOut: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -100,7 +101,7 @@ fun CoursesRoot(
         createDialogState = createDialogState,
         joinDialogState = joinDialogState,
         onCourseClick = onCourseClick,
-        onProfileClick = {},
+        onProfileClick = onProfileClick,
         onRefresh = viewModel::refresh,
         onLogoutAction = viewModel::logout,
         onCreateCourseClick = viewModel::openCreateCourseDialog,
@@ -440,11 +441,13 @@ private fun CourseListCard(
                 overflow = TextOverflow.Ellipsis,
             )
             Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = course.currentUserRole.title(),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-            )
+            course.currentUserRole?.let { role ->
+                Text(
+                    text = role.title(),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
         }
     }
 }
