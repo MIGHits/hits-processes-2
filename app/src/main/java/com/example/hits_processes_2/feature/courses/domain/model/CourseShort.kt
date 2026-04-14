@@ -4,5 +4,5 @@ data class CourseShort(
     val id: String,
     val name: String,
     val description: String,
-    val currentUserRole: CourseRole,
+    val currentUserRole: CourseRole?,
 )

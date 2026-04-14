@@ -28,7 +28,6 @@ class AuthInterceptor(
 
     private fun isAuthPath(path: String): Boolean {
         return path.contains("login") ||
-            path.contains("register") ||
-            path.contains("refresh-tokens")
+            path.contains("register")
     }
 }

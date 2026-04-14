@@ -5,6 +5,7 @@ import com.example.hits_processes_2.feature.authorization.data.TokenStorage
 import com.example.hits_processes_2.feature.authorization.data.TokenStorageImpl
 import com.example.hits_processes_2.feature.authorization.data.remote.AuthApi
 import com.example.hits_processes_2.feature.authorization.data.remote.AuthInterceptor
+import com.example.hits_processes_2.feature.authorization.data.remote.SessionExpiredInterceptor
 import com.example.hits_processes_2.feature.authorization.data.remote.TokenAuthenticator
 import com.example.hits_processes_2.feature.authorization.domain.SessionExpiredNotifier
 import kotlinx.serialization.json.Json
@@ -31,6 +32,13 @@ val networkModule = module {
         AuthInterceptor(tokenProvider = { tokenStorage.getTokens()?.accessToken })
     }
 
+    single {
+        SessionExpiredInterceptor(
+            tokenStorage = get(),
+            sessionExpiredNotifier = get(),
+        )
+    }
+
     single(named("json")) {
         Json {
             ignoreUnknownKeys = true
@@ -41,6 +49,7 @@ val networkModule = module {
     single(named("authClient")) {
         createHttpClient(
             authInterceptor = get(),
+            sessionExpiredInterceptor = get(),
             tokenAuthenticator = null,
         )
     }
@@ -67,6 +76,7 @@ val networkModule = module {
     single(named("authenticatedClient")) {
         createHttpClient(
             authInterceptor = get(),
+            sessionExpiredInterceptor = get(),
             tokenAuthenticator = get(),
         )
     }
@@ -81,10 +91,12 @@ val networkModule = module {
 
 private fun createHttpClient(
     authInterceptor: AuthInterceptor,
+    sessionExpiredInterceptor: SessionExpiredInterceptor,
     tokenAuthenticator: TokenAuthenticator?,
 ): OkHttpClient {
     return OkHttpClient.Builder()
         .addInterceptor(authInterceptor)
+        .addInterceptor(sessionExpiredInterceptor)
         .apply {
             if (tokenAuthenticator != null) {
                 authenticator(tokenAuthenticator)

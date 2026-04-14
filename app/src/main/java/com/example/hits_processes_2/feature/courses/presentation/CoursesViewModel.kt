@@ -56,10 +56,14 @@ class CoursesViewModel(
                     )
                 }
                 .onFailure { throwable ->
-                    _state.value = _state.value.copy(
-                        isLoading = false,
-                        errorMessage = throwable.toReadableMessage(),
-                    )
+                    if (throwable.isUnauthorized()) {
+                        logout()
+                    } else {
+                        _state.value = _state.value.copy(
+                            isLoading = false,
+                            errorMessage = throwable.toReadableMessage(),
+                        )
+                    }
                 }
         }
     }
@@ -182,8 +186,10 @@ class CoursesViewModel(
                 .onSuccess { profile ->
                     _state.value = _state.value.copy(userName = profile.fullName)
                 }
-                .onFailure {
-                    // Keep header usable even if profile request fails.
+                .onFailure { throwable ->
+                    if (throwable.isUnauthorized()) {
+                        logout()
+                    }
                 }
         }
     }
@@ -194,4 +200,10 @@ class CoursesViewModel(
             else -> message ?: "Something went wrong"
         }
     }
+
+    private fun Throwable.isUnauthorized(): Boolean {
+        return this is CoursesException && code in SESSION_EXPIRED_CODES
+    }
 }
+
+private val SESSION_EXPIRED_CODES = setOf(401, 403)

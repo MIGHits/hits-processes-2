@@ -171,7 +171,9 @@ private fun CourseListItem(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                CourseRoleChip(role = course.currentUserRole)
+                course.currentUserRole?.let { role ->
+                    CourseRoleChip(role = role)
+                }
             }
             Spacer(modifier = Modifier.height(8.dp))
             Text(

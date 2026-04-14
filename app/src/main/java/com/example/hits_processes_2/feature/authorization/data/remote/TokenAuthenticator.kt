@@ -21,7 +21,12 @@ class TokenAuthenticator(
             return null
         }
 
-        val refreshToken = tokenStorage.getTokens()?.refreshToken ?: return null
+        val currentTokens = tokenStorage.getTokens() ?: run {
+            expireSession()
+            return null
+        }
+
+        val refreshToken = currentTokens.refreshToken
         val newTokens = runBlocking { refreshTokens(refreshToken) } ?: return null
 
         tokenStorage.saveTokens(newTokens)
