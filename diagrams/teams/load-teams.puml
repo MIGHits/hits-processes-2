@@ -1,0 +1,56 @@
+@startuml
+title "Экран команд: загрузка данных" в hits-processes-2
+
+autonumber
+skinparam backgroundColor white
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+hide footbox
+
+actor "Пользователь" as User
+participant "Экран\nTeamsRoute / TeamsScreen" as Screen
+participant "ViewModel\nTeamsViewModel" as VM
+participant "UseCase\nGetTeamsUseCase" as GetTeamsUC
+participant "UseCase\nGetFreeStudentsUseCase" as GetFreeStudentsUC
+participant "Repository\nTeamsRepository" as Repo
+participant "API\nTeamsApi" as Api
+
+User -> Screen : Открывает экран команд
+Screen -> VM : load(courseId, taskId, userRole,\nteamFormation, userTeamId)
+VM --> Screen : state = Loading
+
+VM -> GetTeamsUC : invoke(courseId, taskId)
+GetTeamsUC -> Repo : getTeams(courseId, taskId)
+Repo -> Api : GET /api/course/{courseId}/task/{taskId}/team/list
+Api --> Repo : ResponseTeamShortListModel
+
+loop Для каждой команды из списка
+    Repo -> Api : GET /api/course/{courseId}/task/{taskId}/team/{teamId}
+    Api --> Repo : ResponseTeamModel
+end
+
+Repo --> GetTeamsUC : Result.success(List<Team>)
+GetTeamsUC --> VM : List<Team>
+
+alt Преподаватель и teamFormation = CUSTOM
+    VM -> GetFreeStudentsUC : invoke(courseId, taskId)
+    GetFreeStudentsUC -> Repo : getFreeStudents(courseId, taskId)
+    Repo -> Api : GET /api/course/{courseId}/task/{taskId}/team/free-students
+    Api --> Repo : ResponseUserCourseListModel
+    Repo --> GetFreeStudentsUC : Result.success(List<TeamMember>)
+    GetFreeStudentsUC --> VM : List<TeamMember>
+else Студент или другой тип формирования
+    VM -> VM : availableStudents = emptyList()
+end
+
+alt Успешная загрузка
+    VM -> VM : Маппит domain -> ui
+    VM --> Screen : state = Content(teams,\nrole, formation, availableStudents)
+    Screen -> Screen : Показывает список команд
+else Ошибка
+    Repo --> VM : Result.failure(TeamsException)
+    VM --> Screen : state = Error(message)
+    Screen -> Screen : Показывает ошибку и кнопку "Повторить"
+end
+
+@enduml

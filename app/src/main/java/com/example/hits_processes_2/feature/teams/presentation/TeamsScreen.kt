@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -28,8 +29,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,42 +40,116 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import org.koin.androidx.compose.koinViewModel
 import com.example.hits_processes_2.feature.teams.presentation.components.FileItem
-import com.example.hits_processes_2.feature.teams.presentation.components.FilledActionIconButton
 import com.example.hits_processes_2.feature.teams.presentation.components.LabeledText
 import com.example.hits_processes_2.feature.teams.presentation.components.SectionDivider
 import com.example.hits_processes_2.feature.teams.presentation.components.SubmissionStatusBadge
 import com.example.hits_processes_2.feature.teams.presentation.components.TeamCard
 import com.example.hits_processes_2.feature.teams.presentation.components.TeamMemberItem
-import com.example.hits_processes_2.feature.teams.presentation.components.TeamSectionHeader
-import com.example.hits_processes_2.feature.teams.presentation.components.TeamsSummaryCard
 import com.example.hits_processes_2.feature.teams.presentation.components.TeamsTopBar
 import com.example.hits_processes_2.ui.theme.Hitsprocesses2Theme
+
+@Composable
+fun TeamsRoute(
+    courseId: String,
+    taskId: String,
+    userRoleName: String,
+    teamFormationName: String,
+    onNavigateBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: TeamsViewModel = koinViewModel(),
+) {
+    val state by viewModel.state.collectAsState()
+    val userRole = userRoleName.toTeamsUserRole()
+    val teamFormation = teamFormationName.toTeamFormation()
+
+    LaunchedEffect(courseId, taskId, userRole, teamFormation) {
+        viewModel.load(
+            courseId = courseId,
+            taskId = taskId,
+            userRole = userRole,
+            teamFormation = teamFormation,
+            userTeamId = null,
+        )
+    }
+
+    when (val currentState = state) {
+        TeamsScreenState.Loading -> TeamsScaffold(onNavigateBack = onNavigateBack, modifier = modifier) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(it),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator()
+            }
+        }
+        is TeamsScreenState.Error -> TeamsScaffold(onNavigateBack = onNavigateBack, modifier = modifier) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(it)
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = currentState.message,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.error,
+                )
+                Button(onClick = viewModel::retry) {
+                    Text("Повторить")
+                }
+            }
+        }
+        is TeamsScreenState.Content -> TeamsScreen(
+            teams = currentState.teams,
+            userRole = currentState.userRole,
+            teamFormation = currentState.teamFormation,
+            userTeamId = currentState.userTeamId,
+            availableStudents = currentState.availableStudents,
+            onNavigateBack = onNavigateBack,
+            onJoinTeam = viewModel::joinTeam,
+            onLeaveTeam = viewModel::leaveTeam,
+            onAddStudent = viewModel::addStudent,
+            onRemoveStudent = viewModel::removeStudent,
+            onSetCaptain = viewModel::setCaptain,
+            onUpdateGrade = viewModel::saveGrade,
+            modifier = modifier,
+        )
+    }
+}
 
 @Composable
 fun TeamsScreen(
     teams: List<Team>,
     userRole: UserRole,
     teamFormation: TeamFormation,
-    userTeamId: Int?,
+    userTeamId: String?,
     availableStudents: List<TeamMember>,
     onNavigateBack: () -> Unit,
-    onJoinTeam: (Int) -> Unit,
+    onJoinTeam: (String) -> Unit,
     onLeaveTeam: () -> Unit,
-    onAddStudent: (teamId: Int, studentId: Int) -> Unit,
-    onRemoveStudent: (teamId: Int, studentId: Int) -> Unit,
-    onSetCaptain: (teamId: Int, studentId: Int) -> Unit,
-    onUpdateGrade: (teamId: Int, grade: Int) -> Unit,
+    onAddStudent: (teamId: String, studentId: String) -> Unit,
+    onRemoveStudent: (teamId: String, studentId: String) -> Unit,
+    onSetCaptain: (teamId: String, studentId: String) -> Unit,
+    onUpdateGrade: (teamId: String, grade: Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var showAddStudentDialog by remember { mutableStateOf(false) }
-    var selectedTeamId by remember { mutableIntStateOf(0) }
-    val gradeInputs = remember { mutableStateMapOf<Int, String>() }
+    var selectedTeamId by remember { mutableStateOf("") }
+    val gradeInputs = remember { mutableStateMapOf<String, String>() }
 
     val isStudent = userRole == UserRole.STUDENT
     val isTeacher = userRole == UserRole.TEACHER || userRole == UserRole.MAIN_TEACHER
     val canStudentJoin = isStudent && teamFormation == TeamFormation.STUDENTS
-    val totalMembers = teams.sumOf { it.members.size }
+    val canManageMembers = isTeacher && teamFormation == TeamFormation.CUSTOM
+    val canAssignCaptain = isTeacher && teamFormation in setOf(
+        TeamFormation.CUSTOM,
+        TeamFormation.STUDENTS,
+    )
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -105,35 +181,31 @@ fun TeamsScreen(
                 ),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                item {
-                    TeamsSummaryCard(
-                        teamsCount = teams.size,
-                        membersCount = totalMembers,
-                        userRoleLabel = userRole.title,
-                        teamFormationLabel = teamFormation.title,
-                    )
-                }
-
                 items(teams, key = Team::id) { team ->
-                    TeamCard(teamNumber = team.number) {
-                        TeamSectionHeader(
-                            membersCount = team.members.size,
-                            status = if (isTeacher) team.status else null,
-                            trailingContent = if (isTeacher) {
-                                {
-                                    TeacherActionsRow(
-                                        onAddStudentClick = {
-                                            selectedTeamId = team.id
-                                            showAddStudentDialog = true
-                                        },
+                    TeamCard(
+                        teamNumber = team.number,
+                        trailingContent = if (canManageMembers) {
+                            {
+                                IconButton(
+                                    onClick = {
+                                        selectedTeamId = team.id
+                                        showAddStudentDialog = true
+                                    },
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.PersonAdd,
+                                        contentDescription = "Добавить студента",
                                     )
                                 }
-                            } else {
-                                null
-                            },
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
+                            }
+                        } else {
+                            null
+                        },
+                    ) {
+                        if (isTeacher) {
+                            SubmissionStatusBadge(status = team.status)
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
 
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             team.members.forEach { member ->
@@ -141,8 +213,8 @@ fun TeamsScreen(
                                     memberName = member.fullName,
                                     isCaptain = member.isCaptain,
                                 ) {
-                                    if (isTeacher) {
-                                        if (!member.isCaptain) {
+                                    if (canAssignCaptain || canManageMembers) {
+                                        if (canAssignCaptain && !member.isCaptain) {
                                             TextButton(
                                                 onClick = { onSetCaptain(team.id, member.id) },
                                             ) {
@@ -150,14 +222,16 @@ fun TeamsScreen(
                                             }
                                         }
 
-                                        IconButton(
-                                            onClick = { onRemoveStudent(team.id, member.id) },
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Delete,
-                                                contentDescription = "Удалить",
-                                                tint = MaterialTheme.colorScheme.error,
-                                            )
+                                        if (canManageMembers) {
+                                            IconButton(
+                                                onClick = { onRemoveStudent(team.id, member.id) },
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Delete,
+                                                    contentDescription = "Удалить",
+                                                    tint = MaterialTheme.colorScheme.error,
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -179,7 +253,7 @@ fun TeamsScreen(
                                 gradeInput = gradeInputs[team.id] ?: team.grade?.toString().orEmpty(),
                                 onGradeInputChange = { gradeInputs[team.id] = it },
                                 onSaveGradeClick = {
-                                    gradeInputs[team.id]?.toIntOrNull()?.let { grade ->
+                                    (gradeInputs[team.id] ?: team.grade?.toString().orEmpty()).toIntOrNull()?.let { grade ->
                                         onUpdateGrade(team.id, grade)
                                     }
                                 },
@@ -204,10 +278,42 @@ fun TeamsScreen(
 }
 
 @Composable
+private fun TeamsScaffold(
+    onNavigateBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable (PaddingValues) -> Unit,
+) {
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        topBar = {
+            TeamsTopBar(
+                title = "Команды",
+                onNavigateBack = onNavigateBack,
+            )
+        },
+        content = content,
+    )
+}
+
+private fun String.toTeamsUserRole(): UserRole = when (uppercase()) {
+    "TEACHER" -> UserRole.TEACHER
+    "HEAD_TEACHER", "MAIN_TEACHER" -> UserRole.MAIN_TEACHER
+    else -> UserRole.STUDENT
+}
+
+private fun String.toTeamFormation(): TeamFormation = when (uppercase()) {
+    "CUSTOM", "TEACHER" -> TeamFormation.CUSTOM
+    "DRAFT" -> TeamFormation.DRAFT
+    "RANDOM" -> TeamFormation.RANDOM
+    "FREE", "STUDENTS" -> TeamFormation.STUDENTS
+    else -> TeamFormation.STUDENTS
+}
+
+@Composable
 private fun TeacherActionsRow(
     onAddStudentClick: () -> Unit,
 ) {
-    FilledActionIconButton(onClick = onAddStudentClick) {
+    IconButton(onClick = onAddStudentClick) {
         Icon(
             imageVector = Icons.Default.PersonAdd,
             contentDescription = "Добавить студента",
@@ -306,7 +412,7 @@ private fun TeacherSubmissionSection(
 private fun AddStudentDialog(
     students: List<TeamMember>,
     onDismiss: () -> Unit,
-    onAddStudent: (Int) -> Unit,
+    onAddStudent: (String) -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -421,7 +527,7 @@ private fun TeamsScreenStudentPreview() {
             teams = previewTeams,
             userRole = UserRole.STUDENT,
             teamFormation = TeamFormation.STUDENTS,
-            userTeamId = 2,
+            userTeamId = "2",
             availableStudents = emptyList(),
             onNavigateBack = {},
             onJoinTeam = {},

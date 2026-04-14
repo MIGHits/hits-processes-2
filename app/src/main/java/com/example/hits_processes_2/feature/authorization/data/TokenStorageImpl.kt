@@ -3,6 +3,8 @@ package com.example.hits_processes_2.feature.authorization.data
 import android.content.Context
 import android.content.SharedPreferences
 import com.example.hits_processes_2.feature.authorization.domain.model.TokenPair
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 class TokenStorageImpl(
     context: Context,
@@ -12,8 +14,14 @@ class TokenStorageImpl(
         PREFERENCES_NAME,
         Context.MODE_PRIVATE,
     )
+    private val _tokens = MutableStateFlow(readTokens())
+    override val tokens: StateFlow<TokenPair?> = _tokens
 
     override fun getTokens(): TokenPair? {
+        return _tokens.value
+    }
+
+    private fun readTokens(): TokenPair? {
         val accessToken = preferences.getString(KEY_ACCESS_TOKEN, null)
         val refreshToken = preferences.getString(KEY_REFRESH_TOKEN, null)
 
@@ -32,6 +40,7 @@ class TokenStorageImpl(
             .putString(KEY_ACCESS_TOKEN, tokens.accessToken)
             .putString(KEY_REFRESH_TOKEN, tokens.refreshToken)
             .apply()
+        _tokens.value = tokens
     }
 
     override fun clearTokens() {
@@ -39,6 +48,7 @@ class TokenStorageImpl(
             .remove(KEY_ACCESS_TOKEN)
             .remove(KEY_REFRESH_TOKEN)
             .apply()
+        _tokens.value = null
     }
 
     private companion object {

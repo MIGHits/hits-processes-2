@@ -10,6 +10,7 @@ data class CreateTaskRequestDto(
     @SerialName("maxScore") val maxScore: Int,
     @SerialName("deadlineTime") val deadlineTime: String,
     @SerialName("teamFormationType") val teamFormationType: String,
+    @SerialName("taskAnswerFinalizationType") val taskAnswerFinalizationType: String,
     @SerialName("teamsAmount") val teamsAmount: Int,
     @SerialName("fileIds") val fileIds: List<String>,
 )

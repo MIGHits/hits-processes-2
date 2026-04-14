@@ -8,14 +8,17 @@ import com.example.hits_processes_2.R
 import com.example.hits_processes_2.common.network.networkModule
 import com.example.hits_processes_2.common.resources.resourceModule
 import com.example.hits_processes_2.feature.authorization.authorizationModule
+import com.example.hits_processes_2.feature.captain_selection.captainSelectionModule
 import com.example.hits_processes_2.feature.course_detail.courseDetailModule
 import com.example.hits_processes_2.feature.courses.coursesModule
+import com.example.hits_processes_2.feature.draft.draftModule
 import com.example.hits_processes_2.feature.file_attachment.fileAttachmentModule
 import com.example.hits_processes_2.feature.file_attachment.service.FileTransferService
 import com.example.hits_processes_2.feature.home.homeModule
 import com.example.hits_processes_2.feature.profile.profileModule
 import com.example.hits_processes_2.feature.task_detail.taskDetailModule
 import com.example.hits_processes_2.feature.task_creation.taskCreationModule
+import com.example.hits_processes_2.feature.teams.teamsModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
 
@@ -31,13 +34,16 @@ class App : Application() {
                 networkModule,
                 resourceModule,
                 authorizationModule,
+                captainSelectionModule,
                 courseDetailModule,
                 coursesModule,
+                draftModule,
                 fileAttachmentModule,
                 homeModule,
                 profileModule,
                 taskDetailModule,
                 taskCreationModule,
+                teamsModule,
             )
         }
     }

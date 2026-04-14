@@ -1,9 +1,11 @@
 package com.example.hits_processes_2.feature.teams.presentation
 
 data class Team(
-    val id: Int,
+    val id: String,
     val number: Int,
     val members: List<TeamMember>,
+    val taskAnswerId: String? = null,
+    val submissionFileId: String? = null,
     val submission: String? = null,
     val submittedAt: String? = null,
     val status: SubmissionStatus = SubmissionStatus.NOT_SUBMITTED,
@@ -11,7 +13,7 @@ data class Team(
 )
 
 data class TeamMember(
-    val id: Int,
+    val id: String,
     val fullName: String,
     val isCaptain: Boolean = false,
 )

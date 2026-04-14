@@ -8,6 +8,7 @@ data class TaskDetailUiState(
     val isLoading: Boolean = false,
     val task: TaskDetail? = null,
     val userRole: CourseDetailsRole = CourseDetailsRole.STUDENT,
+    val showCaptainSelectionAction: Boolean = false,
     val submissionFiles: List<SelectedFileAttachment> = emptyList(),
     val errorMessage: String? = null,
 )

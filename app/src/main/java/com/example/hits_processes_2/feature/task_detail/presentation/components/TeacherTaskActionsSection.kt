@@ -16,6 +16,8 @@ import com.example.hits_processes_2.common.ui.component.FormPrimaryButton
 @Composable
 fun TeacherTaskActionsSection(
     onTeamsClicked: () -> Unit,
+    showCaptainSelectionAction: Boolean,
+    onCaptainSelectionClicked: () -> Unit,
     onEditClicked: () -> Unit,
 ) {
     Column(
@@ -25,6 +27,13 @@ fun TeacherTaskActionsSection(
             text = stringResource(R.string.task_detail_teams_button),
             onClick = onTeamsClicked,
         )
+
+        if (showCaptainSelectionAction) {
+            FormPrimaryButton(
+                text = "Выбрать капитанов",
+                onClick = onCaptainSelectionClicked,
+            )
+        }
 
         Button(
             onClick = onEditClicked,

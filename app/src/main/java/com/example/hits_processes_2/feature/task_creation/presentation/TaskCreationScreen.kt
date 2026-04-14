@@ -26,6 +26,7 @@ import org.koin.core.parameter.parametersOf
 fun TaskCreationScreen(
     courseId: String?,
     onNavigateBack: () -> Unit,
+    onTaskCreated: () -> Unit,
 ) {
     val viewModel: TaskCreationViewModel = koinViewModel(
         parameters = { parametersOf(courseId) },
@@ -37,7 +38,7 @@ fun TaskCreationScreen(
         viewModel.effects.collect { effect ->
             when (effect) {
                 TaskCreationUiEffect.NavigateBack -> onNavigateBack()
-                TaskCreationUiEffect.TaskCreated -> onNavigateBack()
+                TaskCreationUiEffect.TaskCreated -> onTaskCreated()
                 is TaskCreationUiEffect.ShowError -> snackbarHostState.showSnackbar(effect.message)
             }
         }

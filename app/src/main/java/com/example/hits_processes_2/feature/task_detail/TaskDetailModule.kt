@@ -26,6 +26,7 @@ val taskDetailModule = module {
             taskId = parameters.get(),
             userRoleName = parameters.get(),
             getTaskDetailUseCase = get(),
+            getDraftUseCase = get(),
             strings = get(),
         )
     }

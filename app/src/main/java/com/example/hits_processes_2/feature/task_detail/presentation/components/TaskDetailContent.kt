@@ -57,16 +57,24 @@ fun TaskDetailContent(
         )
 
         if (state.userRole == CourseDetailsRole.STUDENT) {
-            StudentSubmissionSection(
-                files = state.submissionFiles,
-                onFilesChanged = { onEvent(TaskDetailUiEvent.SubmissionFilesChanged(it)) },
-                onFileRemoved = { onEvent(TaskDetailUiEvent.SubmissionFileRemoved(it)) },
-                onSubmitClicked = { onEvent(TaskDetailUiEvent.SubmitClicked) },
-                onCancelSubmissionClicked = { onEvent(TaskDetailUiEvent.CancelSubmissionClicked) },
+            val isDraft = task.teamFormationType.equals("DRAFT", ignoreCase = true)
+            if (!isDraft) {
+                StudentSubmissionSection(
+                    files = state.submissionFiles,
+                    onFilesChanged = { onEvent(TaskDetailUiEvent.SubmissionFilesChanged(it)) },
+                    onFileRemoved = { onEvent(TaskDetailUiEvent.SubmissionFileRemoved(it)) },
+                    onSubmitClicked = { onEvent(TaskDetailUiEvent.SubmitClicked) },
+                    onCancelSubmissionClicked = { onEvent(TaskDetailUiEvent.CancelSubmissionClicked) },
+                )
+            }
+            StudentDraftActionsSection(
+                onTeamsClicked = { onEvent(TaskDetailUiEvent.TeamsClicked) },
             )
         } else {
             TeacherTaskActionsSection(
                 onTeamsClicked = { onEvent(TaskDetailUiEvent.TeamsClicked) },
+                showCaptainSelectionAction = state.showCaptainSelectionAction,
+                onCaptainSelectionClicked = { onEvent(TaskDetailUiEvent.CaptainSelectionClicked) },
                 onEditClicked = { onEvent(TaskDetailUiEvent.EditClicked) },
             )
         }

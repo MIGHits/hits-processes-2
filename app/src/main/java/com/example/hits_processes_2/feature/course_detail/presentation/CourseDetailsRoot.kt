@@ -36,6 +36,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -56,14 +57,23 @@ import org.koin.core.parameter.parametersOf
 @Composable
 fun CourseDetailsRoot(
     courseId: String,
+    taskCreated: Boolean,
     onNavigateBack: () -> Unit,
     onTaskClick: (String, CourseDetailsRole) -> Unit,
     onCreateTask: () -> Unit,
+    onTaskCreatedHandled: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val viewModel: CourseDetailsViewModel = koinViewModel(parameters = { parametersOf(courseId) })
     val state by viewModel.state.collectAsState()
     val editDialogState by viewModel.editDialogState.collectAsState()
+
+    LaunchedEffect(taskCreated) {
+        if (taskCreated) {
+            viewModel.refresh()
+            onTaskCreatedHandled()
+        }
+    }
 
     CourseDetailsContent(
         state = state,

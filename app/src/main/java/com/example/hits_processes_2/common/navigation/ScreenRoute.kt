@@ -25,4 +25,43 @@ sealed class ScreenRoute(val route: String) {
 
         fun createRoute(courseId: String): String = "$route?$COURSE_ID_ARG=$courseId"
     }
+    data object Teams : ScreenRoute("teams/{courseId}/{taskId}?role={role}&formation={formation}") {
+        const val COURSE_ID_ARG = "courseId"
+        const val TASK_ID_ARG = "taskId"
+        const val ROLE_ARG = "role"
+        const val FORMATION_ARG = "formation"
+
+        fun createRoute(
+            courseId: String,
+            taskId: String,
+            role: String,
+            formation: String,
+        ): String = "teams/$courseId/$taskId?role=$role&formation=$formation"
+    }
+    data object Draft : ScreenRoute("draft/{courseId}/{taskId}/{draftId}?role={role}") {
+        const val COURSE_ID_ARG = "courseId"
+        const val TASK_ID_ARG = "taskId"
+        const val DRAFT_ID_ARG = "draftId"
+        const val ROLE_ARG = "role"
+
+        fun createRoute(
+            courseId: String,
+            taskId: String,
+            draftId: String,
+            role: String,
+        ): String = "draft/$courseId/$taskId/$draftId?role=$role"
+    }
+    data object CaptainSelection : ScreenRoute("captain_selection/{courseId}/{taskId}?draftId={draftId}&role={role}") {
+        const val COURSE_ID_ARG = "courseId"
+        const val TASK_ID_ARG = "taskId"
+        const val DRAFT_ID_ARG = "draftId"
+        const val ROLE_ARG = "role"
+
+        fun createRoute(
+            courseId: String,
+            taskId: String,
+            draftId: String?,
+            role: String,
+        ): String = "captain_selection/$courseId/$taskId?draftId=${draftId.orEmpty()}&role=$role"
+    }
 }
