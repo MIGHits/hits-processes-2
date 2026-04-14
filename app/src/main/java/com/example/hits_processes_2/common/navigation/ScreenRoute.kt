@@ -17,6 +17,15 @@ sealed class ScreenRoute(val route: String) {
             role: String,
         ): String = "task_detail/$courseId/$taskId?role=$role"
     }
+    data object TaskEdit : ScreenRoute("task_edit/{courseId}/{taskId}") {
+        const val COURSE_ID_ARG = "courseId"
+        const val TASK_ID_ARG = "taskId"
+
+        fun createRoute(
+            courseId: String,
+            taskId: String,
+        ): String = "task_edit/$courseId/$taskId"
+    }
     data object Home : ScreenRoute("home")
     data object Profile : ScreenRoute("profile")
     data object TaskCreation : ScreenRoute("task_creation") {

@@ -60,7 +60,9 @@ class TaskDetailViewModel(
             TaskDetailUiEvent.TeamsClicked -> openTeamsOrDraft()
             TaskDetailUiEvent.CaptainSelectionClicked -> openCaptainSelection()
             TaskDetailUiEvent.EvaluateClicked -> sendMessage(R.string.task_detail_evaluate_unavailable)
-            TaskDetailUiEvent.EditClicked -> sendMessage(R.string.task_detail_edit_unavailable)
+            TaskDetailUiEvent.EditClicked -> {
+                sendEffect(TaskDetailUiEffect.NavigateToEdit(courseId, taskId))
+            }
         }
     }
 

@@ -26,6 +26,7 @@ fun TaskDetailRoot(
     courseId: String,
     taskId: String,
     userRoleName: String,
+    onNavigateToEdit: (String, String) -> Unit,
     onNavigateBack: () -> Unit,
     onOpenTeams: (courseId: String, taskId: String, teamFormationType: String, userRoleName: String) -> Unit,
     onOpenDraft: (courseId: String, taskId: String, draftId: String, userRoleName: String) -> Unit,
@@ -65,6 +66,7 @@ fun TaskDetailRoot(
         viewModel.effects.collect { effect ->
             when (effect) {
                 TaskDetailUiEffect.NavigateBack -> onNavigateBack()
+                is TaskDetailUiEffect.NavigateToEdit -> onNavigateToEdit(effect.courseId, effect.taskId)
                 is TaskDetailUiEffect.ShowMessage -> snackbarHostState.showSnackbar(effect.message)
                 is TaskDetailUiEffect.StartFileDownload -> {
                     val intent = Intent(context, FileTransferService::class.java).apply {
