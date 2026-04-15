@@ -55,6 +55,7 @@
     <string name="file_attachment_error_prepare">Не удалось подготовить файл</string>
     <string name="file_attachment_error_upload">Не удалось загрузить файл</string>
     <string name="file_attachment_error_download">Не удалось скачать файл</string>
+    <string name="file_attachment_error_delete">Не удалось удалить файл</string>
     <string name="file_attachment_permission_denied">Нет доступа к изображениям</string>
     <string name="file_attachment_label">Прикрепленные файлы</string>
     <string name="file_attachment_hint">Выберите документы или изображения для загрузки</string>
