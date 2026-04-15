@@ -201,7 +201,7 @@ private fun ParticipantsTab(
 											contentDescription = "Повысить"
 										)
 									}
-									IconButton(onClick = { onDemote(teacher.id) }) {
+									if (false) IconButton(onClick = { onDemote(teacher.id) }) {
 										Icon(
 											imageVector = Icons.Default.KeyboardArrowDown,
 											contentDescription = "Понизить"
@@ -234,7 +234,7 @@ private fun ParticipantsTab(
 											contentDescription = "Повысить"
 										)
 									}
-									IconButton(onClick = { onDemote(student.id) }) {
+									if (false) IconButton(onClick = { onDemote(student.id) }) {
 										Icon(
 											imageVector = Icons.Default.KeyboardArrowDown,
 											contentDescription = "Понизить"

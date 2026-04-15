@@ -9,6 +9,7 @@ fun DomainTeam.toUi(): Team {
         id = id,
         number = number,
         members = members.map(DomainTeamMember::toUi),
+        finalAnswerId = finalAnswerId,
         taskAnswerId = taskAnswerId,
         submissionFileId = submissionFileId,
         submission = submission,

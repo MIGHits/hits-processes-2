@@ -4,6 +4,7 @@ data class Team(
     val id: String,
     val number: Int,
     val members: List<TeamMember>,
+    val finalAnswerId: String? = null,
     val taskAnswerId: String? = null,
     val submissionFileId: String? = null,
     val submission: String? = null,

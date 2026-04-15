@@ -18,6 +18,7 @@ fun DraftDto.toDomain(): Draft {
         teams = teams.mapIndexed { index, team -> team.toDomain(fallbackNumber = index + 1) },
         isStarted = isStarted,
         isEnded = isEnded,
+        timeToPickSeconds = timeToPick,
     )
 }
 

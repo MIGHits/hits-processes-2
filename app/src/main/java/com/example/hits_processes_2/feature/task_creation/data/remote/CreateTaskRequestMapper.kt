@@ -9,7 +9,7 @@ fun CreateTaskData.toDto(): CreateTaskRequestDto = CreateTaskRequestDto(
     maxScore = maxScore,
     deadlineTime = deadlineTimeIso,
     teamFormationType = teamFormationType.name,
-    taskAnswerFinalizationType = "FIRST_ATTACHMENT",
+    taskAnswerFinalizationType = taskAnswerFinalizationType.name,
     teamsAmount = teamsAmount,
     fileIds = fileIds,
 )

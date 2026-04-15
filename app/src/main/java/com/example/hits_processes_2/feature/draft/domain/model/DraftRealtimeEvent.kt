@@ -10,6 +10,7 @@ sealed class DraftRealtimeEvent {
         val user: DraftUser,
     ) : DraftRealtimeEvent()
     data object TimeToChooseStudent : DraftRealtimeEvent()
+    data object AutoSelectionPerformed : DraftRealtimeEvent()
     data class Error(val message: String) : DraftRealtimeEvent()
     data class Unknown(val type: String, val rawData: String?) : DraftRealtimeEvent()
 }

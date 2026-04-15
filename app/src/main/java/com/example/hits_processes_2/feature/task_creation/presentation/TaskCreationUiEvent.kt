@@ -10,8 +10,10 @@ sealed interface TaskCreationUiEvent {
     data class FilesSelected(val files: List<SelectedFileAttachment>) : TaskCreationUiEvent
     data class FileRemoved(val index: Int) : TaskCreationUiEvent
     data class TeamFormationRuleSelected(val rule: TeamFormationRule) : TaskCreationUiEvent
+    data class FinalizationRuleSelected(val rule: TaskAnswerFinalizationRule) : TaskCreationUiEvent
     data class TeamCountChanged(val count: String) : TaskCreationUiEvent
     data object TeamFormationDropdownToggled : TaskCreationUiEvent
+    data object FinalizationDropdownToggled : TaskCreationUiEvent
     data object CreateTaskClicked : TaskCreationUiEvent
     data object BackClicked : TaskCreationUiEvent
 }

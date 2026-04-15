@@ -14,7 +14,7 @@ class SessionExpiredInterceptor(
         val request = chain.request()
         val response = chain.proceed(request)
 
-        if (!request.url.encodedPath.isAuthPath() && response.code in SESSION_EXPIRED_CODES) {
+        if (request.url.encodedPath.isRefreshPath() && response.code in SESSION_EXPIRED_CODES) {
             if (tokenStorage.getTokens() != null) {
                 tokenStorage.clearTokens()
                 sessionExpiredNotifier.notifySessionExpired()
@@ -25,10 +25,6 @@ class SessionExpiredInterceptor(
     }
 }
 
-private fun String.isAuthPath(): Boolean {
-    return contains("login") ||
-        contains("register") ||
-        contains("refresh-tokens")
-}
+private fun String.isRefreshPath(): Boolean = contains("refresh-tokens")
 
 private val SESSION_EXPIRED_CODES = setOf(401, 403)

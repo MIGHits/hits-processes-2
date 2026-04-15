@@ -6,7 +6,7 @@ class EvaluateTeamAnswerUseCase(
     private val repository: TeamsRepository,
 ) {
     suspend operator fun invoke(
-        taskAnswerId: String,
+        teamFinalAnswerId: String,
         grade: Int,
-    ) = repository.evaluateTeamAnswer(taskAnswerId, grade)
+    ) = repository.evaluateTeamAnswer(teamFinalAnswerId, grade)
 }

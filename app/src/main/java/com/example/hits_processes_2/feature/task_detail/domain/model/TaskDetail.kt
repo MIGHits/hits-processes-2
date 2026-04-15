@@ -10,6 +10,7 @@ data class TaskDetail(
     val draftId: String?,
     val maxScore: Int,
     val teamFormationType: String,
+    val taskAnswerFinalizationType: String,
     val author: TaskAuthor?,
     val files: List<TaskFile>,
 )

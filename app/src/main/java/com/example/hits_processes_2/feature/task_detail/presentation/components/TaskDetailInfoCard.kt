@@ -73,6 +73,10 @@ fun TaskDetailInfoCard(
                 DetailValueBlock(value = task.teamFormationType.toDisplayValue())
             }
 
+            DetailSection(title = "Способ итогового решения") {
+                DetailValueBlock(value = task.taskAnswerFinalizationType.toFinalizationDisplayValue())
+            }
+
             DetailSection(title = stringResource(R.string.task_detail_attached_files_label)) {
                 if (task.files.isEmpty()) {
                     Text(
@@ -118,6 +122,17 @@ fun TaskDetailInfoCard(
                 }
             }
         }
+    }
+}
+
+private fun String.toFinalizationDisplayValue(): String {
+    return when (this) {
+        "FIRST_ATTACHMENT" -> "Первое решение"
+        "LAST_ATTACHMENT" -> "Последнее решение"
+        "CAPTAIN_CHOOSE" -> "Решение капитана"
+        "MOST_VOTES" -> "Большинство"
+        "QUALIFIED_MAJORITY" -> "2/3 голосов"
+        else -> ifBlank { "—" }
     }
 }
 

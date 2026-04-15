@@ -9,7 +9,10 @@ sealed class TeamsScreenState {
         val teamFormation: TeamFormation,
         val userTeamId: String?,
         val availableStudents: List<TeamMember>,
+        val maxScore: Int? = null,
         val gradeInputs: Map<String, String> = emptyMap(),
+        val gradeErrorTeamId: String? = null,
+        val gradeSuccessTeamId: String? = null,
         val isRefreshing: Boolean = false,
         val errorMessage: String? = null,
     ) : TeamsScreenState()

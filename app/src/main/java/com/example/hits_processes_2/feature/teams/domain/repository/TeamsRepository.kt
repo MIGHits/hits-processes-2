@@ -48,7 +48,7 @@ interface TeamsRepository {
     ): Result<Unit>
 
     suspend fun evaluateTeamAnswer(
-        taskAnswerId: String,
+        teamFinalAnswerId: String,
         grade: Int,
     ): Result<Unit>
 }

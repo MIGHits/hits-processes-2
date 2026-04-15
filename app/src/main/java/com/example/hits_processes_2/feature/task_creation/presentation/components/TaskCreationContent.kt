@@ -63,6 +63,13 @@ fun TaskCreationContent(
             onSelect = { onEvent(TaskCreationUiEvent.TeamFormationRuleSelected(it)) },
         )
 
+        FinalizationDropdown(
+            selected = state.finalizationRule,
+            expanded = state.isFinalizationDropdownExpanded,
+            onToggle = { onEvent(TaskCreationUiEvent.FinalizationDropdownToggled) },
+            onSelect = { onEvent(TaskCreationUiEvent.FinalizationRuleSelected(it)) },
+        )
+
         TeamCountField(
             count = state.teamCount,
             onCountChange = { onEvent(TaskCreationUiEvent.TeamCountChanged(it)) },

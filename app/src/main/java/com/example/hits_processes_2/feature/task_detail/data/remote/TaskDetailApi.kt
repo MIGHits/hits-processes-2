@@ -45,6 +45,29 @@ interface TaskDetailApi {
         @Path("taskId") taskId: String,
     ): Response<List<TaskAnswerDto>>
 
+    @GET("api/task-answer/task/{taskId}/team/{teamId}/all")
+    suspend fun getAllTeamTaskAnswers(
+        @Path("taskId") taskId: String,
+        @Path("teamId") teamId: String,
+    ): Response<List<TaskAnswerDto>>
+
+    @GET("api/task-answer/task/{taskId}/my-votes")
+    suspend fun getAllUserVotedTaskAnswers(
+        @Path("taskId") taskId: String,
+    ): Response<List<TaskAnswerDto>>
+
+    @POST("api/task-answer/task/{taskId}/answers/{answerId}/vote")
+    suspend fun voteForAnswer(
+        @Path("taskId") taskId: String,
+        @Path("answerId") answerId: String,
+    ): Response<FinalTaskAnswerDto>
+
+    @POST("api/task-answer/task/{taskId}/answers/{answerId}/select")
+    suspend fun selectAnswer(
+        @Path("taskId") taskId: String,
+        @Path("answerId") answerId: String,
+    ): Response<Unit>
+
     @GET("api/task-answer/task/{taskId}/team/{teamId}/final")
     suspend fun getTeamFinalAnswer(
         @Path("taskId") taskId: String,

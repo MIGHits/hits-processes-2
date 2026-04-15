@@ -9,15 +9,21 @@ import com.example.hits_processes_2.feature.draft.domain.usecase.GetDraftUseCase
 import com.example.hits_processes_2.feature.file_attachment.domain.usecase.DeleteFileAttachmentUseCase
 import com.example.hits_processes_2.feature.task_detail.domain.model.TaskAnswer
 import com.example.hits_processes_2.feature.task_detail.domain.model.TaskDetail
+import com.example.hits_processes_2.feature.task_detail.domain.usecase.GetAllTeamTaskAnswersUseCase
 import com.example.hits_processes_2.feature.task_detail.domain.usecase.AttachTaskAnswerUseCase
 import com.example.hits_processes_2.feature.task_detail.domain.usecase.GetAllUserTaskAnswersUseCase
+import com.example.hits_processes_2.feature.task_detail.domain.usecase.GetAllUserVotedTaskAnswersUseCase
 import com.example.hits_processes_2.feature.task_detail.domain.usecase.GetMyTeamUseCase
 import com.example.hits_processes_2.feature.task_detail.domain.usecase.GetTeamFinalAnswerUseCase
 import com.example.hits_processes_2.feature.task_detail.domain.usecase.GetTaskDetailUseCase
+import com.example.hits_processes_2.feature.task_detail.domain.usecase.SelectTaskAnswerUseCase
 import com.example.hits_processes_2.feature.task_detail.domain.usecase.SubmitTaskAnswerUseCase
 import com.example.hits_processes_2.feature.task_detail.domain.usecase.UnattachTaskAnswerUseCase
 import com.example.hits_processes_2.feature.task_detail.domain.usecase.UnsubmitTaskAnswerUseCase
+import com.example.hits_processes_2.feature.task_detail.domain.usecase.VoteForTaskAnswerUseCase
 import com.example.hits_processes_2.feature.teams.domain.usecase.GetTeamsUseCase
+import com.example.hits_processes_2.feature.voting.presentation.VotingOption
+import com.example.hits_processes_2.feature.voting.presentation.VotingSolutionFile
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -34,7 +40,11 @@ class TaskDetailViewModel(
     private val getMyTeamUseCase: GetMyTeamUseCase,
     private val attachTaskAnswerUseCase: AttachTaskAnswerUseCase,
     private val getAllUserTaskAnswersUseCase: GetAllUserTaskAnswersUseCase,
+    private val getAllTeamTaskAnswersUseCase: GetAllTeamTaskAnswersUseCase,
+    private val getAllUserVotedTaskAnswersUseCase: GetAllUserVotedTaskAnswersUseCase,
     private val getTeamFinalAnswerUseCase: GetTeamFinalAnswerUseCase,
+    private val voteForTaskAnswerUseCase: VoteForTaskAnswerUseCase,
+    private val selectTaskAnswerUseCase: SelectTaskAnswerUseCase,
     private val submitTaskAnswerUseCase: SubmitTaskAnswerUseCase,
     private val unsubmitTaskAnswerUseCase: UnsubmitTaskAnswerUseCase,
     private val unattachTaskAnswerUseCase: UnattachTaskAnswerUseCase,
@@ -67,7 +77,7 @@ class TaskDetailViewModel(
             TaskDetailUiEvent.RetryClicked -> loadTaskDetail()
             is TaskDetailUiEvent.FileClicked -> sendEffect(TaskDetailUiEffect.StartFileDownload(event.fileId))
             is TaskDetailUiEvent.SubmissionFilesPicked -> {
-                if (!_state.value.isInTeam) return
+                if (!_state.value.canAttachStudentAnswer) return
                 if ((_state.value.teamFinalAnswer?.score ?: 0) > 0) return
                 if (_state.value.myAttachedAnswers.isNotEmpty()) return
                 if (event.files.isEmpty()) return
@@ -96,6 +106,7 @@ class TaskDetailViewModel(
                 }
             }
             TaskDetailUiEvent.AttachAnswerClicked -> {
+                if (!_state.value.canAttachStudentAnswer) return
                 if ((_state.value.teamFinalAnswer?.score ?: 0) > 0) return
                 if (_state.value.myAttachedAnswers.isNotEmpty()) {
                     sendEffect(
@@ -269,6 +280,16 @@ class TaskDetailViewModel(
                         }
                 }
             }
+            TaskDetailUiEvent.VotingClicked -> openVotingDialog()
+            TaskDetailUiEvent.VotingDismissed -> updateState {
+                copy(isVotingDialogVisible = false, selectedVotingAnswerId = null)
+            }
+            is TaskDetailUiEvent.VotingOptionSelected -> submitVote(event.answerId)
+            TaskDetailUiEvent.CaptainChoiceClicked -> openCaptainChoiceDialog()
+            TaskDetailUiEvent.CaptainChoiceDismissed -> updateState {
+                copy(isCaptainChoiceDialogVisible = false, selectedCaptainChoiceAnswerId = null)
+            }
+            is TaskDetailUiEvent.CaptainChoiceOptionSelected -> submitCaptainChoice(event.answerId)
             TaskDetailUiEvent.TeamsClicked -> openTeamsOrDraft()
             TaskDetailUiEvent.CaptainSelectionClicked -> openCaptainSelection()
             TaskDetailUiEvent.EvaluateClicked -> sendMessage(R.string.task_detail_evaluate_unavailable)
@@ -295,6 +316,24 @@ class TaskDetailViewModel(
         }
     }
 
+    private fun refreshDraftEnded(task: TaskDetail) {
+        val draftId = task.draftId
+        if (!task.isDraft || draftId.isNullOrBlank()) {
+            updateState { copy(isDraftEnded = false) }
+            return
+        }
+
+        viewModelScope.launch {
+            getDraftUseCase(draftId)
+                .onSuccess { draft ->
+                    updateState { copy(isDraftEnded = draft.isEnded) }
+                }
+                .onFailure {
+                    updateState { copy(isDraftEnded = false) }
+                }
+        }
+    }
+
     private fun loadTaskDetail() {
         viewModelScope.launch {
             updateState { copy(isLoading = true, errorMessage = null) }
@@ -304,11 +343,13 @@ class TaskDetailViewModel(
                         copy(
                             isLoading = false,
                             task = task,
+                            isDraftEnded = false,
                             showCaptainSelectionAction = false,
                             errorMessage = null,
                         )
                     }
                     refreshCaptainSelectionAction()
+                    refreshDraftEnded(task)
                 }
                 .onFailure { error ->
                     updateState {
@@ -370,6 +411,165 @@ class TaskDetailViewModel(
                 }
                 .onFailure {
                     updateState { copy(teamFinalAnswer = null) }
+                }
+        }
+    }
+
+    private fun openVotingDialog() {
+        val current = _state.value
+        val task = current.task ?: return
+        val teamId = current.myTeamId ?: return
+        if (!task.isVotingFinalization || !current.isInTeam) return
+
+        viewModelScope.launch {
+            updateState { copy(isVotingLoading = true, isVotingDialogVisible = true) }
+            val teamAnswers = getAllTeamTaskAnswersUseCase(taskId, teamId)
+                .getOrElse { error ->
+                    updateState { copy(isVotingLoading = false, isVotingDialogVisible = false) }
+                    sendEffect(TaskDetailUiEffect.ShowMessage(error.message ?: "РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РІР°СЂРёР°РЅС‚С‹ РіРѕР»РѕСЃРѕРІР°РЅРёСЏ"))
+                    return@launch
+                }
+            val votedAnswers = getAllUserVotedTaskAnswersUseCase(taskId)
+                .getOrElse { emptyList() }
+
+            updateState {
+                copy(
+                    votingOptions = teamAnswers.map(TaskAnswer::toVotingOption),
+                    selectedVotingAnswerId = votedAnswers.firstOrNull()?.id,
+                    isVotingLoading = false,
+                    isVotingDialogVisible = true,
+                )
+            }
+        }
+    }
+
+    private fun submitVote(answerId: String) {
+        val previousSelectedAnswerId = _state.value.selectedVotingAnswerId
+        val nextSelectedAnswerId = if (previousSelectedAnswerId == answerId) null else answerId
+        viewModelScope.launch {
+            updateState {
+                copy(
+                    isVotingLoading = true,
+                    selectedVotingAnswerId = nextSelectedAnswerId,
+                )
+            }
+            voteForTaskAnswerUseCase(taskId, answerId)
+                .onSuccess { finalAnswer ->
+                    updateState {
+                        copy(
+                            teamFinalAnswer = finalAnswer,
+                            isVotingLoading = false,
+                        )
+                    }
+                    refreshVotingOptions()
+                }
+                .onFailure { error ->
+                    updateState {
+                        copy(
+                            isVotingLoading = false,
+                            selectedVotingAnswerId = previousSelectedAnswerId,
+                        )
+                    }
+                    sendEffect(TaskDetailUiEffect.ShowMessage(error.message ?: "РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РґР°С‚СЊ РіРѕР»РѕСЃ"))
+                }
+        }
+    }
+
+    private fun openCaptainChoiceDialog() {
+        val current = _state.value
+        val task = current.task ?: return
+        val teamId = current.myTeamId ?: return
+        if (!task.isCaptainChoiceFinalization || !current.isInTeam || !current.isCaptain) return
+
+        viewModelScope.launch {
+            updateState { copy(isCaptainChoiceLoading = true, isCaptainChoiceDialogVisible = true) }
+            val teamAnswers = getAllTeamTaskAnswersUseCase(taskId, teamId)
+                .getOrElse { error ->
+                    updateState { copy(isCaptainChoiceLoading = false, isCaptainChoiceDialogVisible = false) }
+                    sendEffect(
+                        TaskDetailUiEffect.ShowMessage(
+                            error.message ?: "\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u0440\u0435\u0448\u0435\u043d\u0438\u044f \u043a\u043e\u043c\u0430\u043d\u0434\u044b",
+                        ),
+                    )
+                    return@launch
+                }
+
+            updateState {
+                copy(
+                    votingOptions = teamAnswers.map(TaskAnswer::toVotingOption),
+                    selectedCaptainChoiceAnswerId = teamAnswers.firstOrNull(TaskAnswer::finalDecision)?.id,
+                    isCaptainChoiceLoading = false,
+                    isCaptainChoiceDialogVisible = true,
+                )
+            }
+        }
+    }
+
+    private fun submitCaptainChoice(answerId: String) {
+        val previousSelectedAnswerId = _state.value.selectedCaptainChoiceAnswerId
+        if (previousSelectedAnswerId == answerId) return
+
+        viewModelScope.launch {
+            updateState {
+                copy(
+                    isCaptainChoiceLoading = true,
+                    selectedCaptainChoiceAnswerId = answerId,
+                )
+            }
+            selectTaskAnswerUseCase(taskId, answerId)
+                .onSuccess {
+                    refreshCaptainChoiceOptions()
+                    refreshTeamFinalAnswer()
+                }
+                .onFailure { error ->
+                    updateState {
+                        copy(
+                            isCaptainChoiceLoading = false,
+                            selectedCaptainChoiceAnswerId = previousSelectedAnswerId,
+                        )
+                    }
+                    sendEffect(
+                        TaskDetailUiEffect.ShowMessage(
+                            error.message ?: "\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0432\u044b\u0431\u0440\u0430\u0442\u044c \u0440\u0435\u0448\u0435\u043d\u0438\u0435",
+                        ),
+                    )
+                }
+        }
+    }
+
+    private fun refreshVotingOptions() {
+        val current = _state.value
+        val teamId = current.myTeamId ?: return
+        viewModelScope.launch {
+            getAllTeamTaskAnswersUseCase(taskId, teamId)
+                .onSuccess { answers ->
+                    val votedAnswers = getAllUserVotedTaskAnswersUseCase(taskId).getOrElse { emptyList() }
+                    updateState {
+                        copy(
+                            votingOptions = answers.map(TaskAnswer::toVotingOption),
+                            selectedVotingAnswerId = votedAnswers.firstOrNull()?.id,
+                        )
+                    }
+                }
+        }
+    }
+
+    private fun refreshCaptainChoiceOptions() {
+        val current = _state.value
+        val teamId = current.myTeamId ?: return
+        viewModelScope.launch {
+            getAllTeamTaskAnswersUseCase(taskId, teamId)
+                .onSuccess { answers ->
+                    updateState {
+                        copy(
+                            votingOptions = answers.map(TaskAnswer::toVotingOption),
+                            selectedCaptainChoiceAnswerId = answers.firstOrNull(TaskAnswer::finalDecision)?.id,
+                            isCaptainChoiceLoading = false,
+                        )
+                    }
+                }
+                .onFailure {
+                    updateState { copy(isCaptainChoiceLoading = false) }
                 }
         }
     }
@@ -455,3 +655,32 @@ class TaskDetailViewModel(
 
 private val TaskDetail.isDraft: Boolean
     get() = teamFormationType.equals("DRAFT", ignoreCase = true)
+
+private val TaskDetail.isVotingFinalization: Boolean
+    get() = taskAnswerFinalizationType in setOf("MOST_VOTES", "QUALIFIED_MAJORITY")
+
+private val TaskDetail.isCaptainChoiceFinalization: Boolean
+    get() = taskAnswerFinalizationType == "CAPTAIN_CHOOSE"
+
+private val TaskDetailUiState.canAttachStudentAnswer: Boolean
+    get() {
+        val task = task ?: return false
+        return isInTeam && (!task.isDraft || isDraftEnded)
+    }
+
+private fun TaskAnswer.toVotingOption(): VotingOption {
+    val author = user
+    return VotingOption(
+        id = id,
+        firstName = author?.firstName.orEmpty(),
+        lastName = author?.lastName.orEmpty(),
+        solutionFiles = files.map { file ->
+            VotingSolutionFile(
+                id = file.id,
+                name = file.fileName.ifBlank { file.id },
+            )
+        },
+        votesCount = votesCount,
+    )
+}
+

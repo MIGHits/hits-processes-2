@@ -7,6 +7,7 @@ import com.example.hits_processes_2.common.resources.StringResourceProvider
 import com.example.hits_processes_2.feature.file_attachment.domain.model.FileAttachmentUpload
 import com.example.hits_processes_2.feature.file_attachment.domain.usecase.UploadFileAttachmentUseCase
 import com.example.hits_processes_2.feature.task_creation.domain.model.CreateTaskData
+import com.example.hits_processes_2.feature.task_creation.domain.model.TaskAnswerFinalizationType
 import com.example.hits_processes_2.feature.task_creation.domain.model.TeamFormationType
 import com.example.hits_processes_2.feature.task_creation.domain.usecase.CreateTaskUseCase
 import kotlinx.coroutines.channels.Channel
@@ -49,7 +50,7 @@ class TaskCreationViewModel(
             }
 
             is TaskCreationUiEvent.FilesSelected -> updateState {
-                copy(attachedFiles = attachedFiles + event.files)
+                copy(attachedFiles = event.files)
             }
 
             is TaskCreationUiEvent.FileRemoved -> updateState {
@@ -63,12 +64,23 @@ class TaskCreationViewModel(
                 )
             }
 
+            is TaskCreationUiEvent.FinalizationRuleSelected -> updateState {
+                copy(
+                    finalizationRule = event.rule,
+                    isFinalizationDropdownExpanded = false,
+                )
+            }
+
             is TaskCreationUiEvent.TeamCountChanged -> updateState {
                 copy(teamCount = event.count.filter(Char::isDigit))
             }
 
             TaskCreationUiEvent.TeamFormationDropdownToggled -> updateState {
                 copy(isTeamFormationDropdownExpanded = !isTeamFormationDropdownExpanded)
+            }
+
+            TaskCreationUiEvent.FinalizationDropdownToggled -> updateState {
+                copy(isFinalizationDropdownExpanded = !isFinalizationDropdownExpanded)
             }
 
             TaskCreationUiEvent.CreateTaskClicked -> createTask()
@@ -90,6 +102,7 @@ class TaskCreationViewModel(
             maxScore == null || maxScore !in 1..100 -> showError(R.string.task_creation_error_invalid_max_score)
             snapshot.deadlineMillis == null -> showError(R.string.task_creation_error_deadline_required)
             snapshot.teamFormationRule == null -> showError(R.string.task_creation_error_team_rule_required)
+            snapshot.finalizationRule == null -> sendEffect(TaskCreationUiEffect.ShowError("Выберите способ определения итогового решения"))
             teamCount == null || teamCount <= 0 -> showError(R.string.task_creation_error_invalid_team_count)
             else -> submitTask(
                 courseId = resolvedCourseId,
@@ -133,6 +146,7 @@ class TaskCreationViewModel(
                     maxScore = maxScore,
                     deadlineTimeIso = Instant.ofEpochMilli(snapshot.deadlineMillis!!).toString(),
                     teamFormationType = snapshot.teamFormationRule!!.toDomain(),
+                    taskAnswerFinalizationType = snapshot.finalizationRule!!.toDomain(),
                     teamsAmount = teamCount,
                     fileIds = uploadedFileIds,
                 ),
@@ -162,6 +176,16 @@ class TaskCreationViewModel(
 
     private fun sendEffect(effect: TaskCreationUiEffect) {
         viewModelScope.launch { _effects.send(effect) }
+    }
+}
+
+private fun TaskAnswerFinalizationRule.toDomain(): TaskAnswerFinalizationType {
+    return when (this) {
+        TaskAnswerFinalizationRule.FIRST -> TaskAnswerFinalizationType.FIRST_ATTACHMENT
+        TaskAnswerFinalizationRule.LAST -> TaskAnswerFinalizationType.LAST_ATTACHMENT
+        TaskAnswerFinalizationRule.CAPTAIN -> TaskAnswerFinalizationType.CAPTAIN_CHOOSE
+        TaskAnswerFinalizationRule.MOST_VOTES -> TaskAnswerFinalizationType.MOST_VOTES
+        TaskAnswerFinalizationRule.QUALIFIED_MAJORITY -> TaskAnswerFinalizationType.QUALIFIED_MAJORITY
     }
 }
 

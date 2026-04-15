@@ -81,6 +81,72 @@ class TaskDetailRepositoryImpl(
         }
     }
 
+    override suspend fun getAllTeamTaskAnswers(taskId: String, teamId: String): Result<List<TaskAnswer>> {
+        return runCatching {
+            val response = api.getAllTeamTaskAnswers(taskId, teamId)
+            if (!response.isSuccessful) {
+                throw com.example.hits_processes_2.common.network.ApiException(
+                    code = response.code(),
+                    message = response.message().ifBlank { "Failed to load team answers" },
+                )
+            }
+            val body = response.body()
+                ?: throw com.example.hits_processes_2.common.network.ApiException(
+                    code = response.code(),
+                    message = "Empty response body",
+                )
+            body.map { it.toTaskAnswerDomain() }
+        }
+    }
+
+    override suspend fun getAllUserVotedTaskAnswers(taskId: String): Result<List<TaskAnswer>> {
+        return runCatching {
+            val response = api.getAllUserVotedTaskAnswers(taskId)
+            if (!response.isSuccessful) {
+                throw com.example.hits_processes_2.common.network.ApiException(
+                    code = response.code(),
+                    message = response.message().ifBlank { "Failed to load user votes" },
+                )
+            }
+            val body = response.body()
+                ?: throw com.example.hits_processes_2.common.network.ApiException(
+                    code = response.code(),
+                    message = "Empty response body",
+                )
+            body.map { it.toTaskAnswerDomain() }
+        }
+    }
+
+    override suspend fun voteForAnswer(taskId: String, answerId: String): Result<TeamFinalAnswer> {
+        return runCatching {
+            val response = api.voteForAnswer(taskId, answerId)
+            if (!response.isSuccessful) {
+                throw com.example.hits_processes_2.common.network.ApiException(
+                    code = response.code(),
+                    message = response.message().ifBlank { "Failed to vote for answer" },
+                )
+            }
+            val body = response.body()
+                ?: throw com.example.hits_processes_2.common.network.ApiException(
+                    code = response.code(),
+                    message = "Empty response body",
+                )
+            body.toDomain()
+        }
+    }
+
+    override suspend fun selectAnswer(taskId: String, answerId: String): Result<Unit> {
+        return runCatching {
+            val response = api.selectAnswer(taskId, answerId)
+            if (!response.isSuccessful) {
+                throw com.example.hits_processes_2.common.network.ApiException(
+                    code = response.code(),
+                    message = response.message().ifBlank { "Failed to select answer" },
+                )
+            }
+        }
+    }
+
     override suspend fun getTeamFinalAnswer(taskId: String, teamId: String): Result<TeamFinalAnswer?> {
         return runCatching {
             val response = api.getTeamFinalAnswer(taskId, teamId)

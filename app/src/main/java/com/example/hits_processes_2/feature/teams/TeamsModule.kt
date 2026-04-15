@@ -41,5 +41,5 @@ val teamsModule = module {
 
     factory { EvaluateTeamAnswerUseCase(get()) }
 
-    viewModel { TeamsViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    viewModel { TeamsViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 }

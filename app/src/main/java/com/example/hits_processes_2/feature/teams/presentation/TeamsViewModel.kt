@@ -3,6 +3,7 @@ package com.example.hits_processes_2.feature.teams.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.hits_processes_2.feature.courses.domain.usecase.GetMyProfileUseCase
+import com.example.hits_processes_2.feature.task_detail.domain.usecase.GetTaskDetailUseCase
 import com.example.hits_processes_2.feature.teams.data.repository.TeamsException
 import com.example.hits_processes_2.feature.teams.domain.model.Team
 import com.example.hits_processes_2.feature.teams.domain.usecase.AddTeamMemberUseCase
@@ -28,6 +29,7 @@ class TeamsViewModel(
     private val assignTeamCaptainUseCase: AssignTeamCaptainUseCase,
     private val evaluateTeamAnswerUseCase: EvaluateTeamAnswerUseCase,
     private val getMyProfileUseCase: GetMyProfileUseCase,
+    private val getTaskDetailUseCase: GetTaskDetailUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<TeamsScreenState>(TeamsScreenState.Loading)
@@ -87,8 +89,24 @@ class TeamsViewModel(
     }
 
     fun setCaptain(teamId: String, studentId: String) {
-        executeMutation { request ->
+        val request = lastRequest ?: return
+        val content = state.value as? TeamsScreenState.Content ?: return
+
+        viewModelScope.launch {
+            _state.value = content
+                .withCaptain(teamId = teamId, studentId = studentId)
+                .copy(isRefreshing = true, errorMessage = null)
+
             assignTeamCaptainUseCase(request.courseId, request.taskId, teamId, studentId)
+                .onSuccess {
+                    loadSuspend(request, showFullScreenLoading = false)
+                }
+                .onFailure { error ->
+                    _state.value = content.copy(
+                        isRefreshing = false,
+                        errorMessage = error.toReadableMessage(),
+                    )
+                }
         }
     }
 
@@ -97,19 +115,51 @@ class TeamsViewModel(
             content.copy(
                 gradeInputs = content.gradeInputs + (teamId to value),
                 errorMessage = null,
+                gradeErrorTeamId = null,
+                gradeSuccessTeamId = null,
             )
         }
     }
 
     fun saveGrade(teamId: String, grade: Int) {
         val content = state.value as? TeamsScreenState.Content ?: return
-        val taskAnswerId = content.teams.firstOrNull { it.id == teamId }?.taskAnswerId
-        if (taskAnswerId == null) {
-            _state.value = content.copy(errorMessage = "Нет решения, которое можно оценить")
+        val finalAnswerId = content.teams.firstOrNull { it.id == teamId }?.finalAnswerId
+        if (finalAnswerId == null) {
+            _state.value = content.copy(
+                errorMessage = "Нет решения, которое можно оценить",
+                gradeErrorTeamId = teamId,
+                gradeSuccessTeamId = null,
+            )
             return
         }
 
-        executeMutation { evaluateTeamAnswerUseCase(taskAnswerId, grade) }
+        val request = lastRequest ?: return
+        viewModelScope.launch {
+            _state.value = content.copy(
+                isRefreshing = true,
+                errorMessage = null,
+                gradeErrorTeamId = null,
+                gradeSuccessTeamId = null,
+            )
+            evaluateTeamAnswerUseCase(finalAnswerId, grade)
+                .onSuccess {
+                    loadSuspend(request, showFullScreenLoading = false)
+                    val refreshedContent = _state.value as? TeamsScreenState.Content ?: return@onSuccess
+                    _state.value = refreshedContent.copy(
+                        errorMessage = null,
+                        gradeErrorTeamId = null,
+                        gradeSuccessTeamId = teamId,
+                    )
+                }
+                .onFailure { error ->
+                    _state.value = content.copy(
+                        isRefreshing = false,
+                        errorMessage = error.toReadableMessage(),
+                        gradeErrorTeamId = teamId,
+                        gradeSuccessTeamId = null,
+                    )
+                }
+        }
     }
 
     fun saveGrade(teamId: String) {
@@ -123,6 +173,8 @@ class TeamsViewModel(
             content.copy(
                 gradeInputs = gradeInputs,
                 errorMessage = "Сохранение оценки пока не поддержано API",
+                gradeErrorTeamId = teamId,
+                gradeSuccessTeamId = null,
             )
         }
     }
@@ -135,7 +187,12 @@ class TeamsViewModel(
         val content = state.value as? TeamsScreenState.Content ?: return
 
         viewModelScope.launch {
-            _state.value = content.copy(isRefreshing = true, errorMessage = null)
+            _state.value = content.copy(
+                isRefreshing = true,
+                errorMessage = null,
+                gradeErrorTeamId = null,
+                gradeSuccessTeamId = null,
+            )
             mutation(request)
                 .onSuccess {
                     val updatedRequest = request.updateRequestOnSuccess()
@@ -184,12 +241,15 @@ class TeamsViewModel(
                 }
 
                 TeamsScreenState.Content(
-                    teams = teams.map { it.toUi() },
+                    teams = teams.map { it.toUi() }.preserveOrder(previousContent?.teams),
                     userRole = request.userRole,
                     teamFormation = request.teamFormation,
                     userTeamId = userTeamId,
                     availableStudents = availableStudents.map { it.toUi() },
+                    maxScore = getTaskDetailUseCase(request.courseId, request.taskId).getOrNull()?.maxScore,
                     gradeInputs = previousContent?.gradeInputs.orEmpty(),
+                    gradeErrorTeamId = previousContent?.gradeErrorTeamId,
+                    gradeSuccessTeamId = previousContent?.gradeSuccessTeamId,
                     isRefreshing = false,
                     errorMessage = null,
                 )
@@ -238,6 +298,40 @@ private data class TeamsLoadRequest(
 
     val isStudentFreeFormation: Boolean
         get() = userRole == UserRole.STUDENT && teamFormation == TeamFormation.STUDENTS
+}
+
+private fun TeamsScreenState.Content.withCaptain(
+    teamId: String,
+    studentId: String,
+): TeamsScreenState.Content {
+    return copy(
+        teams = teams.map { team ->
+            if (team.id != teamId) {
+                team
+            } else {
+                team.copy(
+                    members = team.members.map { member ->
+                        member.copy(isCaptain = member.id == studentId)
+                    },
+                )
+            }
+        },
+    )
+}
+
+private fun List<com.example.hits_processes_2.feature.teams.presentation.Team>.preserveOrder(
+    previousTeams: List<com.example.hits_processes_2.feature.teams.presentation.Team>?,
+): List<com.example.hits_processes_2.feature.teams.presentation.Team> {
+    if (previousTeams.isNullOrEmpty()) return this
+
+    val previousOrder = previousTeams
+        .mapIndexed { index, team -> team.id to index }
+        .toMap()
+
+    return sortedWith(
+        compareBy<com.example.hits_processes_2.feature.teams.presentation.Team> { previousOrder[it.id] ?: Int.MAX_VALUE }
+            .thenBy { it.number },
+    )
 }
 
 private fun Throwable.toReadableMessage(): String {

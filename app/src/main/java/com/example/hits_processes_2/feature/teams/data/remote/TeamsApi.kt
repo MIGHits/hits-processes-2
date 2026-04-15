@@ -6,13 +6,13 @@ import com.example.hits_processes_2.feature.teams.data.remote.dto.TeamDto
 import com.example.hits_processes_2.feature.teams.data.remote.dto.TeamShortListDto
 import com.example.hits_processes_2.feature.teams.data.remote.dto.TaskRateRequestDto
 import com.example.hits_processes_2.feature.teams.data.remote.dto.UserCourseListDto
+import kotlinx.serialization.json.JsonElement
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
-import retrofit2.http.PUT
 
 interface TeamsApi {
 
@@ -79,9 +79,9 @@ interface TeamsApi {
         @Path("studentId") studentId: String,
     ): Response<ApiResponseDto<TeamDto>>
 
-    @PUT("api/task-answer/task-answer/{taskAnswerId}/evaluate")
+    @POST("api/task-answer/final/{teamFinalTaskAnswerId}/grade")
     suspend fun evaluateTaskAnswer(
-        @Path("taskAnswerId") taskAnswerId: String,
+        @Path("teamFinalTaskAnswerId") teamFinalTaskAnswerId: String,
         @Body request: TaskRateRequestDto,
-    ): Response<Unit>
+    ): Response<JsonElement>
 }

@@ -58,32 +58,38 @@ fun TaskDetailContent(
 
         if (state.userRole == CourseDetailsRole.STUDENT) {
             val isDraft = task.teamFormationType.equals("DRAFT", ignoreCase = true)
-            if (!isDraft) {
-                if (state.isInTeam) {
-                    StudentSubmissionSection(
-                        uploadedFiles = state.uploadedSubmissionFiles,
-                        myAttachedFiles = state.myAttachedAnswers.flatMap { it.files }.distinctBy { it.id },
-                        teamFinalAnswer = state.teamFinalAnswer,
-                        isCaptain = state.isCaptain,
-                        isUploadingFiles = state.isUploadingFiles,
-                        isAttaching = state.isAttaching,
-                        isSubmitting = state.isSubmitting,
-                        onFilesPicked = { onEvent(TaskDetailUiEvent.SubmissionFilesPicked(it)) },
-                        onUploadedFileRemoved = { onEvent(TaskDetailUiEvent.UploadedSubmissionFileRemoved(it)) },
-                        onAttachAnswerClicked = { onEvent(TaskDetailUiEvent.AttachAnswerClicked) },
-                        onCancelSubmissionClicked = { onEvent(TaskDetailUiEvent.CancelSubmissionClicked) },
-                        onCancelMyAttachedAnswersClicked = { onEvent(TaskDetailUiEvent.CancelMyAttachedAnswersClicked) },
-                        onSubmitAnswerClicked = { onEvent(TaskDetailUiEvent.SubmitAnswerClicked) },
-                        onUnsubmitAnswerClicked = { onEvent(TaskDetailUiEvent.UnsubmitAnswerClicked) },
-                        onFileClick = { onEvent(TaskDetailUiEvent.FileClicked(it)) },
-                    )
-                } else {
-                    Text(
-                        text = stringResource(R.string.task_detail_not_in_team),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+            val canShowSubmission = state.isInTeam && (!isDraft || state.isDraftEnded)
+            if (canShowSubmission) {
+                StudentSubmissionSection(
+                    uploadedFiles = state.uploadedSubmissionFiles,
+                    myAttachedFiles = state.myAttachedAnswers.flatMap { it.files }.distinctBy { it.id },
+                    teamFinalAnswer = state.teamFinalAnswer,
+                    maxScore = task.maxScore,
+                    isCaptain = state.isCaptain,
+                    isUploadingFiles = state.isUploadingFiles,
+                    isAttaching = state.isAttaching,
+                    isSubmitting = state.isSubmitting,
+                    showVotingButton = task.taskAnswerFinalizationType.isVotingFinalization(),
+                    isVotingLoading = state.isVotingLoading,
+                    showCaptainChoiceButton = task.taskAnswerFinalizationType.isCaptainChoiceFinalization() && state.isCaptain,
+                    isCaptainChoiceLoading = state.isCaptainChoiceLoading,
+                    onFilesPicked = { onEvent(TaskDetailUiEvent.SubmissionFilesPicked(it)) },
+                    onUploadedFileRemoved = { onEvent(TaskDetailUiEvent.UploadedSubmissionFileRemoved(it)) },
+                    onAttachAnswerClicked = { onEvent(TaskDetailUiEvent.AttachAnswerClicked) },
+                    onCancelSubmissionClicked = { onEvent(TaskDetailUiEvent.CancelSubmissionClicked) },
+                    onCancelMyAttachedAnswersClicked = { onEvent(TaskDetailUiEvent.CancelMyAttachedAnswersClicked) },
+                    onSubmitAnswerClicked = { onEvent(TaskDetailUiEvent.SubmitAnswerClicked) },
+                    onUnsubmitAnswerClicked = { onEvent(TaskDetailUiEvent.UnsubmitAnswerClicked) },
+                    onVotingClicked = { onEvent(TaskDetailUiEvent.VotingClicked) },
+                    onCaptainChoiceClicked = { onEvent(TaskDetailUiEvent.CaptainChoiceClicked) },
+                    onFileClick = { onEvent(TaskDetailUiEvent.FileClicked(it)) },
+                )
+            } else if (!state.isInTeam) {
+                Text(
+                    text = stringResource(R.string.task_detail_not_in_team),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
             StudentDraftActionsSection(
                 onTeamsClicked = { onEvent(TaskDetailUiEvent.TeamsClicked) },
@@ -101,4 +107,12 @@ fun TaskDetailContent(
             )
         }
     }
+}
+
+private fun String.isVotingFinalization(): Boolean {
+    return this == "MOST_VOTES" || this == "QUALIFIED_MAJORITY"
+}
+
+private fun String.isCaptainChoiceFinalization(): Boolean {
+    return this == "CAPTAIN_CHOOSE"
 }

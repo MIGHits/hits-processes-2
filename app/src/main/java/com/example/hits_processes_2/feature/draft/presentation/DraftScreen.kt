@@ -28,6 +28,8 @@ import com.example.hits_processes_2.feature.draft.presentation.components.DraftT
 import com.example.hits_processes_2.ui.theme.Hitsprocesses2Theme
 import org.koin.androidx.compose.koinViewModel
 
+private const val DEFAULT_PICK_TIMER_SECONDS = 60
+
 @Composable
 fun DraftRoute(
     courseId: String,
@@ -106,6 +108,8 @@ fun DraftScreen(
                 availableStudents = state.availableStudents,
                 isCaptainTurn = state.isPickDialogVisible,
                 currentCaptainName = state.draft.currentPickerName(),
+                pickTimerSeconds = state.draft.timeToPickSeconds ?: DEFAULT_PICK_TIMER_SECONDS,
+                pickDialogGeneration = state.pickDialogGeneration,
                 onNavigateBack = onNavigateBack,
                 onDismissPickDialog = onDismissPickDialog,
                 onSelectStudent = onSelectStudent,
@@ -121,6 +125,8 @@ fun DraftScreen(
     availableStudents: List<DraftStudent>,
     isCaptainTurn: Boolean,
     currentCaptainName: String?,
+    pickTimerSeconds: Int = DEFAULT_PICK_TIMER_SECONDS,
+    pickDialogGeneration: Int = 0,
     onNavigateBack: () -> Unit,
     onDismissPickDialog: () -> Unit,
     onSelectStudent: (String) -> Unit,
@@ -162,6 +168,8 @@ fun DraftScreen(
     if (isCaptainTurn) {
         DraftPickDialog(
             students = availableStudents,
+            timerSeconds = pickTimerSeconds,
+            timerKey = pickDialogGeneration,
             onDismiss = onDismissPickDialog,
             onSelectStudent = onSelectStudent,
         )

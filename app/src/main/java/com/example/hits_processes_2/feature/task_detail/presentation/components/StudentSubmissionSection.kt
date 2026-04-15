@@ -39,10 +39,15 @@ fun StudentSubmissionSection(
     uploadedFiles: List<UploadedFileAttachment>,
     myAttachedFiles: List<UploadedFileAttachment>,
     teamFinalAnswer: TeamFinalAnswer?,
+    maxScore: Int,
     isCaptain: Boolean,
     isUploadingFiles: Boolean,
     isAttaching: Boolean,
     isSubmitting: Boolean,
+    showVotingButton: Boolean,
+    isVotingLoading: Boolean,
+    showCaptainChoiceButton: Boolean,
+    isCaptainChoiceLoading: Boolean,
     onFilesPicked: (List<SelectedFileAttachment>) -> Unit,
     onUploadedFileRemoved: (Int) -> Unit,
     onAttachAnswerClicked: () -> Unit,
@@ -50,6 +55,8 @@ fun StudentSubmissionSection(
     onCancelMyAttachedAnswersClicked: () -> Unit,
     onSubmitAnswerClicked: () -> Unit,
     onUnsubmitAnswerClicked: () -> Unit,
+    onVotingClicked: () -> Unit,
+    onCaptainChoiceClicked: () -> Unit,
     onFileClick: (String) -> Unit,
 ) {
     val pickerState = rememberFileAttachmentPicker(
@@ -88,7 +95,36 @@ fun StudentSubmissionSection(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            Text(
+                text = if (teamFinalAnswer.score > 0) {
+                    "Оценка: ${teamFinalAnswer.score} из $maxScore баллов"
+                } else {
+                    "Оценка: не выставлена"
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             HorizontalDivider()
+        }
+
+        if (showVotingButton) {
+            Button(
+                onClick = onVotingClicked,
+                enabled = !isVotingLoading,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(text = "Голосование")
+            }
+        }
+
+        if (showCaptainChoiceButton) {
+            Button(
+                onClick = onCaptainChoiceClicked,
+                enabled = !isCaptainChoiceLoading,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(text = "\u0412\u044b\u0431\u0440\u0430\u0442\u044c \u0440\u0435\u0448\u0435\u043d\u0438\u0435")
+            }
         }
 
         Text(
