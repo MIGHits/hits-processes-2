@@ -7,6 +7,7 @@ import com.example.hits_processes_2.feature.course_detail.domain.usecase.ChangeU
 import com.example.hits_processes_2.feature.course_detail.domain.usecase.EditCourseUseCase
 import com.example.hits_processes_2.feature.course_detail.domain.usecase.GetCourseDetailsUseCase
 import com.example.hits_processes_2.feature.course_detail.presentation.CourseDetailsViewModel
+import com.example.hits_processes_2.feature.profile.domain.usecase.GetMyProfileUseCase
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
@@ -29,6 +30,7 @@ val courseDetailModule = module {
             getCourseDetailsUseCase = get(),
             editCourseUseCase = get(),
             changeUserRoleUseCase = get(),
+            getMyProfileUseCase = get<GetMyProfileUseCase>(),
         )
     }
 }

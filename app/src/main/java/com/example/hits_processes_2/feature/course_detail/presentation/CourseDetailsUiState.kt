@@ -17,6 +17,7 @@ data class CourseDetailsUiState(
     val tasks: List<CourseTask> = emptyList(),
     val teachers: List<CourseParticipant> = emptyList(),
     val students: List<CourseParticipant> = emptyList(),
+    val currentUserId: String? = null,
     val errorMessage: String? = null,
     val isRefreshingRoles: Boolean = false,
 )

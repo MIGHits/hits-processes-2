@@ -8,6 +8,7 @@ import com.example.hits_processes_2.feature.course_detail.domain.model.CoursePar
 import com.example.hits_processes_2.feature.course_detail.domain.usecase.ChangeUserRoleUseCase
 import com.example.hits_processes_2.feature.course_detail.domain.usecase.EditCourseUseCase
 import com.example.hits_processes_2.feature.course_detail.domain.usecase.GetCourseDetailsUseCase
+import com.example.hits_processes_2.feature.profile.domain.usecase.GetMyProfileUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,6 +19,7 @@ class CourseDetailsViewModel(
     private val getCourseDetailsUseCase: GetCourseDetailsUseCase,
     private val editCourseUseCase: EditCourseUseCase,
     private val changeUserRoleUseCase: ChangeUserRoleUseCase,
+    private val getMyProfileUseCase: GetMyProfileUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(CourseDetailsUiState(isLoading = true))
@@ -39,6 +41,7 @@ class CourseDetailsViewModel(
             )
 
             val (courseResult, tasksResult, participantsResult) = getCourseDetailsUseCase(courseId)
+            val profileResult = getMyProfileUseCase()
 
             val error = listOf(
                 courseResult.exceptionOrNull(),
@@ -61,6 +64,7 @@ class CourseDetailsViewModel(
                 tasks = tasksResult.getOrDefault(emptyList()),
                 teachers = participants.filter { it.role != CourseDetailsRole.STUDENT },
                 students = participants.filter { it.role == CourseDetailsRole.STUDENT },
+                currentUserId = profileResult.getOrNull()?.id,
                 errorMessage = null,
                 isRefreshingRoles = false,
             )

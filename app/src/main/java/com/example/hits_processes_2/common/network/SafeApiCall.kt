@@ -46,7 +46,13 @@ suspend fun safeApiCallUnit(
     return try {
         val response = apiCall()
         if (response.isSuccessful) {
-            Result.success(Unit)
+            val body = response.body()
+            when {
+                body?.errorMessage != null -> {
+                    Result.failure(ApiException(body.statusCode ?: response.code(), body.errorMessage))
+                }
+                else -> Result.success(Unit)
+            }
         } else {
             Result.failure(ApiException(response.code(), response.extractErrorMessage()))
         }
