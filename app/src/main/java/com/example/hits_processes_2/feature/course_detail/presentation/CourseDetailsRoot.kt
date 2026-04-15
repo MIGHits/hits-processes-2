@@ -215,6 +215,7 @@ fun CourseDetailsContent(
                         teachers = state.teachers,
                         students = state.students,
                         currentUserRole = course.currentUserRole,
+                        currentUserId = state.currentUserId,
                         isRefreshingRoles = state.isRefreshingRoles,
                         onPromoteParticipant = onPromoteParticipant,
                         onDemoteParticipant = onDemoteParticipant,
@@ -350,6 +351,7 @@ private fun CourseParticipantsTab(
     teachers: List<CourseParticipant>,
     students: List<CourseParticipant>,
     currentUserRole: CourseDetailsRole,
+    currentUserId: String?,
     isRefreshingRoles: Boolean,
     onPromoteParticipant: (CourseParticipant) -> Unit,
     onDemoteParticipant: (CourseParticipant) -> Unit,
@@ -365,6 +367,7 @@ private fun CourseParticipantsTab(
                 title = "Преподаватели",
                 participants = teachers,
                 currentUserRole = currentUserRole,
+                currentUserId = currentUserId,
                 isRefreshingRoles = isRefreshingRoles,
                 onPromoteParticipant = onPromoteParticipant,
                 onDemoteParticipant = onDemoteParticipant,
@@ -376,6 +379,7 @@ private fun CourseParticipantsTab(
                 title = "Студенты",
                 participants = students,
                 currentUserRole = currentUserRole,
+                currentUserId = currentUserId,
                 isRefreshingRoles = isRefreshingRoles,
                 onPromoteParticipant = onPromoteParticipant,
                 onDemoteParticipant = onDemoteParticipant,
@@ -389,6 +393,7 @@ private fun ParticipantSection(
     title: String,
     participants: List<CourseParticipant>,
     currentUserRole: CourseDetailsRole,
+    currentUserId: String?,
     isRefreshingRoles: Boolean,
     onPromoteParticipant: (CourseParticipant) -> Unit,
     onDemoteParticipant: (CourseParticipant) -> Unit,
@@ -418,6 +423,7 @@ private fun ParticipantSection(
                     ParticipantRow(
                         participant = participant,
                         currentUserRole = currentUserRole,
+                        currentUserId = currentUserId,
                         isRefreshingRoles = isRefreshingRoles,
                         onPromoteParticipant = onPromoteParticipant,
                         onDemoteParticipant = onDemoteParticipant,
@@ -432,10 +438,14 @@ private fun ParticipantSection(
 private fun ParticipantRow(
     participant: CourseParticipant,
     currentUserRole: CourseDetailsRole,
+    currentUserId: String?,
     isRefreshingRoles: Boolean,
     onPromoteParticipant: (CourseParticipant) -> Unit,
     onDemoteParticipant: (CourseParticipant) -> Unit,
 ) {
+    val canManageRoles = currentUserRole == CourseDetailsRole.HEAD_TEACHER &&
+        participant.id != currentUserId
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -459,7 +469,7 @@ private fun ParticipantRow(
             )
         }
 
-        if (currentUserRole == CourseDetailsRole.HEAD_TEACHER && !isRefreshingRoles) {
+        if (canManageRoles && !isRefreshingRoles) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (participant.role != CourseDetailsRole.HEAD_TEACHER) {
                     IconButton(onClick = { onPromoteParticipant(participant) }) {
