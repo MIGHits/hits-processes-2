@@ -86,6 +86,17 @@ class FileAttachmentRepositoryImpl(
         }.mapErrorMessage(context.getString(R.string.file_attachment_error_download))
     }
 
+    override suspend fun deleteFile(fileId: String): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            val response = api.deleteFile(fileId)
+            if (!response.isSuccessful) {
+                throw IllegalStateException(
+                    response.message().ifBlank { context.getString(R.string.file_attachment_error_delete) },
+                )
+            }
+        }.mapErrorMessage(context.getString(R.string.file_attachment_error_delete))
+    }
+
     private fun parseFileName(
         contentDisposition: String?,
         contentType: String,

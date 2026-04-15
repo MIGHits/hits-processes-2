@@ -4,6 +4,7 @@ import com.example.hits_processes_2.feature.file_attachment.data.remote.FileAtta
 import com.example.hits_processes_2.feature.file_attachment.data.remote.FileMultipartFactory
 import com.example.hits_processes_2.feature.file_attachment.data.repository.FileAttachmentRepositoryImpl
 import com.example.hits_processes_2.feature.file_attachment.domain.repository.FileAttachmentRepository
+import com.example.hits_processes_2.feature.file_attachment.domain.usecase.DeleteFileAttachmentUseCase
 import com.example.hits_processes_2.feature.file_attachment.domain.usecase.DownloadFileAttachmentUseCase
 import com.example.hits_processes_2.feature.file_attachment.domain.usecase.UploadFileAttachmentUseCase
 import org.koin.core.qualifier.named
@@ -22,4 +23,5 @@ val fileAttachmentModule = module {
 
     factory { UploadFileAttachmentUseCase(get()) }
     factory { DownloadFileAttachmentUseCase(get()) }
+    factory { DeleteFileAttachmentUseCase(get()) }
 }

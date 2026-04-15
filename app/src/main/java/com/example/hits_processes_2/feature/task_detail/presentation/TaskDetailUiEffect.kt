@@ -5,6 +5,7 @@ sealed interface TaskDetailUiEffect {
     data class NavigateToEdit(val courseId: String, val taskId: String) : TaskDetailUiEffect
     data class ShowMessage(val message: String) : TaskDetailUiEffect
     data class StartFileDownload(val fileId: String) : TaskDetailUiEffect
+    data class StartFileUpload(val uriStrings: List<String>) : TaskDetailUiEffect
     data class OpenTeams(
         val courseId: String,
         val taskId: String,

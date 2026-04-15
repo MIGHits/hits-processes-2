@@ -17,4 +17,6 @@ interface FileAttachmentRepository {
         destinationDir: File,
         onProgress: (Int) -> Unit = {},
     ): Result<DownloadedFileAttachment>
+
+    suspend fun deleteFile(fileId: String): Result<Unit>
 }
