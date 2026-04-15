@@ -128,7 +128,7 @@
     <string name="task_edit_max_score_label">Максимальный балл</string>
     <string name="task_edit_max_score_placeholder">От 1 до 100</string>
     <string name="task_edit_deadline_label">Дедлайн</string>
-    <string name="task_edit_deadline_placeholder">ДД.ММ.ГГГГ --:--</string>
+    <string name="task_edit_deadline_placeholder">ДД.ММ.ГГГГ —:—</string>
     <string name="task_edit_deadline_pick_content_description">Выбрать дату</string>
     <string name="task_edit_files_label">Прикреплённые файлы</string>
     <string name="task_edit_add_file_title">Добавить файл</string>
