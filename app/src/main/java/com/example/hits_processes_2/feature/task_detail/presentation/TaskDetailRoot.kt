@@ -1,6 +1,7 @@
 package com.example.hits_processes_2.feature.task_detail.presentation
 
 import android.content.Intent
+import android.net.Uri
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -42,11 +43,17 @@ fun TaskDetailRoot(
     val lifecycleOwner = LocalLifecycleOwner.current
 
     RememberFileTransferReceiver(
+        onUploadCompleted = { uploadedFiles ->
+            viewModel.onEvent(TaskDetailUiEvent.FilesUploaded(uploadedFiles))
+        },
+        onUploadFailed = { message ->
+            val text = message.ifBlank { context.getString(R.string.file_attachment_error_upload) }
+            scope.launch { snackbarHostState.showSnackbar(text) }
+            viewModel.onEvent(TaskDetailUiEvent.FilesUploaded(emptyList()))
+        },
         onDownloadFailed = { message ->
             val text = message.ifBlank { context.getString(R.string.file_attachment_error_download) }
-            scope.launch {
-                snackbarHostState.showSnackbar(text)
-            }
+            scope.launch { snackbarHostState.showSnackbar(text) }
         },
     )
 
@@ -77,6 +84,14 @@ fun TaskDetailRoot(
                     snackbarHostState.showSnackbar(
                         context.getString(R.string.task_detail_download_started),
                     )
+                }
+                is TaskDetailUiEffect.StartFileUpload -> {
+                    val uris = ArrayList(effect.uriStrings.map { Uri.parse(it) })
+                    val intent = Intent(context, FileTransferService::class.java).apply {
+                        action = FileTransferService.ACTION_UPLOAD
+                        putParcelableArrayListExtra(FileTransferService.EXTRA_FILE_URIS, uris)
+                    }
+                    ContextCompat.startForegroundService(context, intent)
                 }
                 is TaskDetailUiEffect.OpenTeams -> onOpenTeams(
                     effect.courseId,

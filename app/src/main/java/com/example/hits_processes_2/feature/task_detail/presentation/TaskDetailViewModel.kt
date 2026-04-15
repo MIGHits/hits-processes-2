@@ -6,8 +6,18 @@ import com.example.hits_processes_2.R
 import com.example.hits_processes_2.common.resources.StringResourceProvider
 import com.example.hits_processes_2.feature.course_detail.domain.model.CourseDetailsRole
 import com.example.hits_processes_2.feature.draft.domain.usecase.GetDraftUseCase
+import com.example.hits_processes_2.feature.file_attachment.domain.usecase.DeleteFileAttachmentUseCase
+import com.example.hits_processes_2.feature.task_detail.domain.model.TaskAnswer
 import com.example.hits_processes_2.feature.task_detail.domain.model.TaskDetail
+import com.example.hits_processes_2.feature.task_detail.domain.usecase.AttachTaskAnswerUseCase
+import com.example.hits_processes_2.feature.task_detail.domain.usecase.GetAllUserTaskAnswersUseCase
+import com.example.hits_processes_2.feature.task_detail.domain.usecase.GetMyTeamUseCase
+import com.example.hits_processes_2.feature.task_detail.domain.usecase.GetTeamFinalAnswerUseCase
 import com.example.hits_processes_2.feature.task_detail.domain.usecase.GetTaskDetailUseCase
+import com.example.hits_processes_2.feature.task_detail.domain.usecase.SubmitTaskAnswerUseCase
+import com.example.hits_processes_2.feature.task_detail.domain.usecase.UnattachTaskAnswerUseCase
+import com.example.hits_processes_2.feature.task_detail.domain.usecase.UnsubmitTaskAnswerUseCase
+import com.example.hits_processes_2.feature.teams.domain.usecase.GetTeamsUseCase
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,6 +31,15 @@ class TaskDetailViewModel(
     userRoleName: String,
     private val getTaskDetailUseCase: GetTaskDetailUseCase,
     private val getDraftUseCase: GetDraftUseCase,
+    private val getMyTeamUseCase: GetMyTeamUseCase,
+    private val attachTaskAnswerUseCase: AttachTaskAnswerUseCase,
+    private val getAllUserTaskAnswersUseCase: GetAllUserTaskAnswersUseCase,
+    private val getTeamFinalAnswerUseCase: GetTeamFinalAnswerUseCase,
+    private val submitTaskAnswerUseCase: SubmitTaskAnswerUseCase,
+    private val unsubmitTaskAnswerUseCase: UnsubmitTaskAnswerUseCase,
+    private val unattachTaskAnswerUseCase: UnattachTaskAnswerUseCase,
+    private val deleteFileAttachmentUseCase: DeleteFileAttachmentUseCase,
+    private val getTeamsUseCase: GetTeamsUseCase,
     private val strings: StringResourceProvider,
 ) : ViewModel() {
 
@@ -35,6 +54,11 @@ class TaskDetailViewModel(
 
     init {
         loadTaskDetail()
+        if (resolvedUserRole == CourseDetailsRole.STUDENT) {
+            loadMyTeam()
+        } else {
+            loadTeamsForTeacher()
+        }
     }
 
     fun onEvent(event: TaskDetailUiEvent) {
@@ -42,27 +66,213 @@ class TaskDetailViewModel(
             TaskDetailUiEvent.BackClicked -> sendEffect(TaskDetailUiEffect.NavigateBack)
             TaskDetailUiEvent.RetryClicked -> loadTaskDetail()
             is TaskDetailUiEvent.FileClicked -> sendEffect(TaskDetailUiEffect.StartFileDownload(event.fileId))
-            is TaskDetailUiEvent.SubmissionFilesChanged -> updateState {
-                copy(submissionFiles = event.files)
+            is TaskDetailUiEvent.SubmissionFilesPicked -> {
+                if (!_state.value.isInTeam) return
+                if ((_state.value.teamFinalAnswer?.score ?: 0) > 0) return
+                if (_state.value.myAttachedAnswers.isNotEmpty()) return
+                if (event.files.isEmpty()) return
+                updateState { copy(isUploadingFiles = true) }
+                sendEffect(TaskDetailUiEffect.StartFileUpload(event.files.map { it.uriString }))
             }
-            is TaskDetailUiEvent.SubmissionFileRemoved -> updateState {
-                copy(
-                    submissionFiles = submissionFiles.toMutableList().also { files ->
-                        if (event.index in files.indices) files.removeAt(event.index)
-                    },
-                )
+            is TaskDetailUiEvent.UploadedSubmissionFileRemoved -> {
+                val current = _state.value.uploadedSubmissionFiles
+                if (event.index !in current.indices) return
+                if ((_state.value.teamFinalAnswer?.score ?: 0) > 0) return
+                val removed = current[event.index]
+                updateState {
+                    copy(
+                        uploadedSubmissionFiles = uploadedSubmissionFiles.toMutableList().also { it.removeAt(event.index) },
+                    )
+                }
+                viewModelScope.launch {
+                    deleteFileAttachmentUseCase(removed.id)
+                        .onFailure {
+                            sendEffect(
+                                TaskDetailUiEffect.ShowMessage(
+                                    it.message ?: strings.getString(R.string.file_attachment_error_delete),
+                                ),
+                            )
+                        }
+                }
             }
-            TaskDetailUiEvent.SubmitClicked -> sendMessage(R.string.task_detail_submission_unavailable)
+            TaskDetailUiEvent.AttachAnswerClicked -> {
+                if ((_state.value.teamFinalAnswer?.score ?: 0) > 0) return
+                if (_state.value.myAttachedAnswers.isNotEmpty()) {
+                    sendEffect(
+                        TaskDetailUiEffect.ShowMessage(
+                            strings.getString(R.string.task_detail_submission_my_files_blocked_hint),
+                        ),
+                    )
+                    return
+                }
+                val files = _state.value.uploadedSubmissionFiles
+                if (files.isEmpty()) {
+                    sendMessage(R.string.task_detail_attach_no_files)
+                    return
+                }
+                updateState { copy(isAttaching = true) }
+                viewModelScope.launch {
+                    attachTaskAnswerUseCase(taskId, files)
+                        .onSuccess { result ->
+                            val attachedAnswer = result.newTaskAnswerId
+                                .takeIf { it.isNotBlank() }
+                                ?.let { answerId ->
+                                    TaskAnswer(
+                                        id = answerId,
+                                        files = files,
+                                    )
+                                }
+                            updateState {
+                                copy(
+                                    isAttaching = false,
+                                    uploadedSubmissionFiles = emptyList(),
+                                    myAttachedAnswers = attachedAnswer
+                                        ?.let { myAttachedAnswers + it }
+                                        ?: myAttachedAnswers,
+                                    teamFinalAnswer = result.teamFinalAnswer,
+                                )
+                            }
+                            if (attachedAnswer == null) {
+                                refreshMyAttachedAnswers()
+                            }
+                            sendMessage(R.string.task_detail_attach_success)
+                        }
+                        .onFailure { error ->
+                            updateState { copy(isAttaching = false) }
+                            sendEffect(
+                                TaskDetailUiEffect.ShowMessage(
+                                    error.message ?: strings.getString(R.string.task_detail_attach_error),
+                                ),
+                            )
+                        }
+                }
+            }
+            is TaskDetailUiEvent.FilesUploaded -> {
+                updateState {
+                    copy(
+                        isUploadingFiles = false,
+                        uploadedSubmissionFiles = (uploadedSubmissionFiles + event.files).distinctBy { it.id },
+                    )
+                }
+            }
             TaskDetailUiEvent.CancelSubmissionClicked -> {
-                updateState { copy(submissionFiles = emptyList()) }
-                sendMessage(R.string.task_detail_submission_cleared)
+                val toDelete = _state.value.uploadedSubmissionFiles
+                updateState { copy(uploadedSubmissionFiles = emptyList()) }
+                viewModelScope.launch {
+                    toDelete.forEach { file ->
+                        deleteFileAttachmentUseCase(file.id)
+                    }
+                }
+            }
+            TaskDetailUiEvent.CancelMyAttachedAnswersClicked -> {
+                val current = _state.value
+                if (!current.isInTeam) return
+                if (current.isUploadingFiles || current.isAttaching || current.isSubmitting) return
+                if ((current.teamFinalAnswer?.score ?: 0) > 0) return
+
+                updateState { copy(isAttaching = true) }
+                viewModelScope.launch {
+                    val answers = if (current.myAttachedAnswers.any { it.id.isBlank() }) {
+                        getAllUserTaskAnswersUseCase(taskId)
+                            .onSuccess { refreshedAnswers ->
+                                updateState { copy(myAttachedAnswers = refreshedAnswers) }
+                            }
+                            .getOrElse { error ->
+                                updateState { copy(isAttaching = false) }
+                                sendEffect(
+                                    TaskDetailUiEffect.ShowMessage(
+                                        error.message ?: strings.getString(R.string.task_detail_unattach_error),
+                                    ),
+                                )
+                                return@launch
+                            }
+                    } else {
+                        current.myAttachedAnswers
+                    }
+                    val toUnattach = answers
+                        .filter { it.id.isNotBlank() }
+                        .distinctBy { it.id }
+                    if (toUnattach.isEmpty()) {
+                        updateState { copy(isAttaching = false) }
+                        return@launch
+                    }
+                    var lastFinalAnswer = current.teamFinalAnswer
+                    toUnattach.forEach { answer ->
+                        unattachTaskAnswerUseCase(taskId, answer.id)
+                            .onSuccess { finalAnswer ->
+                                lastFinalAnswer = finalAnswer
+                            }
+                            .onFailure { error ->
+                                updateState { copy(isAttaching = false) }
+                                sendEffect(
+                                    TaskDetailUiEffect.ShowMessage(
+                                        error.message ?: strings.getString(R.string.task_detail_unattach_error),
+                                    ),
+                                )
+                                return@launch
+                            }
+                    }
+                    val removedAnswerIds = toUnattach.map { it.id }.toSet()
+                    updateState {
+                        copy(
+                            isAttaching = false,
+                            myAttachedAnswers = myAttachedAnswers.filterNot { it.id in removedAnswerIds },
+                            teamFinalAnswer = lastFinalAnswer,
+                        )
+                    }
+                    sendMessage(R.string.task_detail_unattach_success)
+                }
+            }
+            TaskDetailUiEvent.SubmitAnswerClicked -> {
+                val s = _state.value
+                if (!s.isInTeam || !s.isCaptain) return
+                if ((s.teamFinalAnswer?.score ?: 0) > 0) return
+                if (s.isUploadingFiles || s.isAttaching || s.isSubmitting) return
+                viewModelScope.launch {
+                    updateState { copy(isSubmitting = true) }
+                    submitTaskAnswerUseCase(taskId)
+                        .onSuccess {
+                            updateState { copy(isSubmitting = false) }
+                            refreshTeamFinalAnswer()
+                            sendMessage(R.string.task_detail_submit_success)
+                        }
+                        .onFailure { error ->
+                            updateState { copy(isSubmitting = false) }
+                            sendEffect(
+                                TaskDetailUiEffect.ShowMessage(
+                                    error.message ?: strings.getString(R.string.task_detail_submit_error),
+                                ),
+                            )
+                        }
+                }
+            }
+            TaskDetailUiEvent.UnsubmitAnswerClicked -> {
+                val s = _state.value
+                if (!s.isInTeam || !s.isCaptain) return
+                if ((s.teamFinalAnswer?.score ?: 0) > 0) return
+                if (s.isUploadingFiles || s.isAttaching || s.isSubmitting) return
+                viewModelScope.launch {
+                    updateState { copy(isSubmitting = true) }
+                    unsubmitTaskAnswerUseCase(taskId)
+                        .onSuccess {
+                            updateState { copy(isSubmitting = false) }
+                            refreshTeamFinalAnswer()
+                            sendMessage(R.string.task_detail_unsubmit_success)
+                        }
+                        .onFailure { error ->
+                            updateState { copy(isSubmitting = false) }
+                            sendEffect(
+                                TaskDetailUiEffect.ShowMessage(
+                                    error.message ?: strings.getString(R.string.task_detail_unsubmit_error),
+                                ),
+                            )
+                        }
+                }
             }
             TaskDetailUiEvent.TeamsClicked -> openTeamsOrDraft()
             TaskDetailUiEvent.CaptainSelectionClicked -> openCaptainSelection()
             TaskDetailUiEvent.EvaluateClicked -> sendMessage(R.string.task_detail_evaluate_unavailable)
-            TaskDetailUiEvent.EditClicked -> {
-                sendEffect(TaskDetailUiEffect.NavigateToEdit(courseId, taskId))
-            }
+            TaskDetailUiEvent.EditClicked -> sendEffect(TaskDetailUiEffect.NavigateToEdit(courseId, taskId))
         }
     }
 
@@ -108,6 +318,58 @@ class TaskDetailViewModel(
                             errorMessage = error.message ?: strings.getString(R.string.task_detail_error_load),
                         )
                     }
+                }
+        }
+    }
+
+    private fun loadMyTeam() {
+        viewModelScope.launch {
+            getMyTeamUseCase(courseId, taskId)
+                .onSuccess { team ->
+                    updateState { copy(isInTeam = true, isCaptain = team.isCaptain, myTeamId = team.id) }
+                    refreshMyAttachedAnswers()
+                    team.id?.let { refreshTeamFinalAnswer(it) }
+                }
+                .onFailure {
+                    updateState { copy(isInTeam = false, isCaptain = false, myTeamId = null) }
+                }
+        }
+    }
+
+    private fun loadTeamsForTeacher() {
+        viewModelScope.launch {
+            getTeamsUseCase(courseId, taskId)
+                .onSuccess { teams ->
+                    updateState { copy(teacherTeams = teams) }
+                }
+                .onFailure {
+                    updateState { copy(teacherTeams = emptyList()) }
+                }
+        }
+    }
+
+    private fun refreshMyAttachedAnswers() {
+        viewModelScope.launch {
+            getAllUserTaskAnswersUseCase(taskId)
+                .onSuccess { answers ->
+                    updateState { copy(myAttachedAnswers = answers) }
+                }
+                .onFailure {
+                    updateState { copy(myAttachedAnswers = emptyList()) }
+                }
+        }
+    }
+
+    private fun refreshTeamFinalAnswer(teamId: String? = null) {
+        val resolvedTeamId = teamId ?: _state.value.myTeamId
+        if (resolvedTeamId.isNullOrBlank()) return
+        viewModelScope.launch {
+            getTeamFinalAnswerUseCase(taskId, resolvedTeamId)
+                .onSuccess { finalAnswer ->
+                    updateState { copy(teamFinalAnswer = finalAnswer) }
+                }
+                .onFailure {
+                    updateState { copy(teamFinalAnswer = null) }
                 }
         }
     }
