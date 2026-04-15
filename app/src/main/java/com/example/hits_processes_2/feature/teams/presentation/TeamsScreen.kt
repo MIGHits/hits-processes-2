@@ -1,5 +1,7 @@
 package com.example.hits_processes_2.feature.teams.presentation
 
+import android.content.Intent
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,8 +40,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import com.example.hits_processes_2.feature.file_attachment.service.FileTransferService
 import org.koin.androidx.compose.koinViewModel
 import com.example.hits_processes_2.feature.teams.presentation.components.FileItem
 import com.example.hits_processes_2.feature.teams.presentation.components.LabeledText
@@ -49,6 +54,13 @@ import com.example.hits_processes_2.feature.teams.presentation.components.TeamCa
 import com.example.hits_processes_2.feature.teams.presentation.components.TeamMemberItem
 import com.example.hits_processes_2.feature.teams.presentation.components.TeamsTopBar
 import com.example.hits_processes_2.ui.theme.Hitsprocesses2Theme
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.OffsetDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
+import java.util.Locale
 
 @Composable
 fun TeamsRoute(
@@ -63,6 +75,15 @@ fun TeamsRoute(
     val state by viewModel.state.collectAsState()
     val userRole = userRoleName.toTeamsUserRole()
     val teamFormation = teamFormationName.toTeamFormation()
+    val context = LocalContext.current
+
+    fun downloadFile(fileId: String) {
+        val intent = Intent(context, FileTransferService::class.java).apply {
+            action = FileTransferService.ACTION_DOWNLOAD
+            putExtra(FileTransferService.EXTRA_FILE_ID, fileId)
+        }
+        ContextCompat.startForegroundService(context, intent)
+    }
 
     LaunchedEffect(courseId, taskId, userRole, teamFormation) {
         viewModel.load(
@@ -110,6 +131,10 @@ fun TeamsRoute(
             teamFormation = currentState.teamFormation,
             userTeamId = currentState.userTeamId,
             availableStudents = currentState.availableStudents,
+            maxScore = currentState.maxScore,
+            errorMessage = currentState.errorMessage,
+            gradeErrorTeamId = currentState.gradeErrorTeamId,
+            gradeSuccessTeamId = currentState.gradeSuccessTeamId,
             onNavigateBack = onNavigateBack,
             onJoinTeam = viewModel::joinTeam,
             onLeaveTeam = viewModel::leaveTeam,
@@ -117,6 +142,7 @@ fun TeamsRoute(
             onRemoveStudent = viewModel::removeStudent,
             onSetCaptain = viewModel::setCaptain,
             onUpdateGrade = viewModel::saveGrade,
+            onFileClick = ::downloadFile,
             modifier = modifier,
         )
     }
@@ -129,6 +155,10 @@ fun TeamsScreen(
     teamFormation: TeamFormation,
     userTeamId: String?,
     availableStudents: List<TeamMember>,
+    maxScore: Int?,
+    errorMessage: String?,
+    gradeErrorTeamId: String?,
+    gradeSuccessTeamId: String?,
     onNavigateBack: () -> Unit,
     onJoinTeam: (String) -> Unit,
     onLeaveTeam: () -> Unit,
@@ -136,6 +166,7 @@ fun TeamsScreen(
     onRemoveStudent: (teamId: String, studentId: String) -> Unit,
     onSetCaptain: (teamId: String, studentId: String) -> Unit,
     onUpdateGrade: (teamId: String, grade: Int) -> Unit,
+    onFileClick: (fileId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var showAddStudentDialog by remember { mutableStateOf(false) }
@@ -147,6 +178,7 @@ fun TeamsScreen(
     val canStudentJoin = isStudent && teamFormation == TeamFormation.STUDENTS
     val canManageMembers = isTeacher && teamFormation == TeamFormation.CUSTOM
     val canAssignCaptain = isTeacher && teamFormation in setOf(
+        TeamFormation.RANDOM,
         TeamFormation.CUSTOM,
         TeamFormation.STUDENTS,
     )
@@ -182,6 +214,7 @@ fun TeamsScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 items(teams, key = Team::id) { team ->
+                    val hasCaptain = team.members.any(TeamMember::isCaptain)
                     TeamCard(
                         teamNumber = team.number,
                         trailingContent = if (canManageMembers) {
@@ -214,7 +247,7 @@ fun TeamsScreen(
                                     isCaptain = member.isCaptain,
                                 ) {
                                     if (canAssignCaptain || canManageMembers) {
-                                        if (canAssignCaptain && !member.isCaptain) {
+                                        if (canAssignCaptain && !hasCaptain) {
                                             TextButton(
                                                 onClick = { onSetCaptain(team.id, member.id) },
                                             ) {
@@ -251,12 +284,16 @@ fun TeamsScreen(
                             TeacherSubmissionSection(
                                 team = team,
                                 gradeInput = gradeInputs[team.id] ?: team.grade?.toString().orEmpty(),
+                                maxScore = maxScore,
+                                errorMessage = errorMessage.takeIf { gradeErrorTeamId == team.id },
+                                successMessage = "Оценка сохранена".takeIf { gradeSuccessTeamId == team.id },
                                 onGradeInputChange = { gradeInputs[team.id] = it },
                                 onSaveGradeClick = {
                                     (gradeInputs[team.id] ?: team.grade?.toString().orEmpty()).toIntOrNull()?.let { grade ->
                                         onUpdateGrade(team.id, grade)
                                     }
                                 },
+                                onFileClick = onFileClick,
                             )
                         }
                     }
@@ -309,6 +346,26 @@ private fun String.toTeamFormation(): TeamFormation = when (uppercase()) {
     else -> TeamFormation.STUDENTS
 }
 
+private fun formatTeamsDateTime(value: String?): String {
+    if (value.isNullOrBlank()) return "—"
+
+    val formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm", Locale("ru"))
+
+    return runCatching {
+        OffsetDateTime.parse(value).format(formatter)
+    }.getOrNull()
+        ?: runCatching {
+            Instant.parse(value)
+                .atZone(ZoneId.systemDefault())
+                .format(formatter)
+        }.getOrNull()
+        ?: try {
+            LocalDateTime.parse(value).format(formatter)
+        } catch (_: DateTimeParseException) {
+            value
+        }
+}
+
 @Composable
 private fun TeacherActionsRow(
     onAddStudentClick: () -> Unit,
@@ -351,28 +408,39 @@ private fun StudentTeamAction(
 private fun TeacherSubmissionSection(
     team: Team,
     gradeInput: String,
+    maxScore: Int?,
+    errorMessage: String?,
+    successMessage: String?,
     onGradeInputChange: (String) -> Unit,
     onSaveGradeClick: () -> Unit,
+    onFileClick: (fileId: String) -> Unit,
 ) {
     Spacer(modifier = Modifier.height(14.dp))
     SectionDivider()
     Spacer(modifier = Modifier.height(14.dp))
 
-    LabeledText(
+    if (team.submission != null && team.submissionFileId != null) {
+        FileItem(
+            fileName = team.submission,
+            onClick = { onFileClick(team.submissionFileId) },
+        )
+    } else {
+        LabeledText(
         label = "Решение команды",
         text = team.submission ?: "Не сдано",
-    )
+        )
 
-    if (team.submission != null) {
-        Spacer(modifier = Modifier.height(8.dp))
-        FileItem(fileName = team.submission)
+        if (team.submission != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            FileItem(fileName = team.submission)
+        }
     }
 
     if (team.submittedAt != null) {
         Spacer(modifier = Modifier.height(12.dp))
         LabeledText(
             label = "Момент сдачи",
-            text = team.submittedAt,
+            text = formatTeamsDateTime(team.submittedAt),
         )
     }
 
@@ -391,6 +459,24 @@ private fun TeacherSubmissionSection(
     )
     Spacer(modifier = Modifier.height(8.dp))
 
+    errorMessage?.let { message ->
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+    }
+
+    successMessage?.let { message ->
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+    }
+
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -402,6 +488,13 @@ private fun TeacherSubmissionSection(
             modifier = Modifier.weight(1f),
             singleLine = true,
         )
+        if (maxScore != null) {
+            Text(
+                text = "из $maxScore",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         Button(onClick = onSaveGradeClick) {
             Text("Сохранить")
         }
@@ -508,6 +601,10 @@ private fun TeamsScreenTeacherPreview() {
             teamFormation = TeamFormation.CUSTOM,
             userTeamId = null,
             availableStudents = previewAvailableStudents,
+            maxScore = 100,
+            errorMessage = null,
+            gradeErrorTeamId = null,
+            gradeSuccessTeamId = null,
             onNavigateBack = {},
             onJoinTeam = {},
             onLeaveTeam = {},
@@ -515,6 +612,7 @@ private fun TeamsScreenTeacherPreview() {
             onRemoveStudent = { _, _ -> },
             onSetCaptain = { _, _ -> },
             onUpdateGrade = { _, _ -> },
+            onFileClick = {},
         )
     }
 }
@@ -529,6 +627,10 @@ private fun TeamsScreenStudentPreview() {
             teamFormation = TeamFormation.STUDENTS,
             userTeamId = "2",
             availableStudents = emptyList(),
+            maxScore = 100,
+            errorMessage = null,
+            gradeErrorTeamId = null,
+            gradeSuccessTeamId = null,
             onNavigateBack = {},
             onJoinTeam = {},
             onLeaveTeam = {},
@@ -536,6 +638,7 @@ private fun TeamsScreenStudentPreview() {
             onRemoveStudent = { _, _ -> },
             onSetCaptain = { _, _ -> },
             onUpdateGrade = { _, _ -> },
+            onFileClick = {},
         )
     }
 }

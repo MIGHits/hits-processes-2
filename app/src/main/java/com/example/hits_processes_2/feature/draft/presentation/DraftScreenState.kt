@@ -11,6 +11,7 @@ sealed class DraftScreenState {
         val currentUserId: String?,
         val availableStudents: List<DraftStudent> = emptyList(),
         val isPickDialogVisible: Boolean = false,
+        val pickDialogGeneration: Int = 0,
         val lastRealtimeEvent: DraftRealtimeEvent? = null,
         val errorMessage: String? = null,
         val isRefreshing: Boolean = false,

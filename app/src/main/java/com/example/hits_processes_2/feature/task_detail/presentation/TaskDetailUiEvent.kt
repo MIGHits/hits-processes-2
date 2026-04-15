@@ -18,6 +18,12 @@ sealed interface TaskDetailUiEvent {
     // Captain: finalize or cancel final submission
     data object SubmitAnswerClicked : TaskDetailUiEvent
     data object UnsubmitAnswerClicked : TaskDetailUiEvent
+    data object VotingClicked : TaskDetailUiEvent
+    data object VotingDismissed : TaskDetailUiEvent
+    data class VotingOptionSelected(val answerId: String) : TaskDetailUiEvent
+    data object CaptainChoiceClicked : TaskDetailUiEvent
+    data object CaptainChoiceDismissed : TaskDetailUiEvent
+    data class CaptainChoiceOptionSelected(val answerId: String) : TaskDetailUiEvent
     // Teacher/navigation events
     data object TeamsClicked : TaskDetailUiEvent
     data object CaptainSelectionClicked : TaskDetailUiEvent

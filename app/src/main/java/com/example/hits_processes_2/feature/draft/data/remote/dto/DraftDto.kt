@@ -13,6 +13,7 @@ data class DraftDto(
     @SerialName("teams") val teams: List<DraftTeamDto> = emptyList(),
     @SerialName("isStarted") val isStarted: Boolean = false,
     @SerialName("isEnded") val isEnded: Boolean = false,
+    @SerialName("timeToPick") val timeToPick: Int? = null,
 )
 
 @Serializable

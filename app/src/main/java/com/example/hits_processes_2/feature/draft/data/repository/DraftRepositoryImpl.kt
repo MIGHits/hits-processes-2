@@ -129,6 +129,7 @@ class DraftRepositoryImpl(
                 TYPE_STUDENT_JOINED_TEAM -> message.data.decodeStudentJoinedTeam()
                 TYPE_TEAM_STRUCTURE_CHANGED -> message.data.decodeTeamStructureChanged()
                 TYPE_TIME_TO_CHOOSE_STUDENT -> DraftRealtimeEvent.TimeToChooseStudent
+                TYPE_AUTO_SELECTION_PERFORMED -> DraftRealtimeEvent.AutoSelectionPerformed
                 TYPE_DRAFT_ENDED -> DraftRealtimeEvent.DraftEnded(message.data.decodeDraftOrNull())
                 TYPE_ERROR -> DraftRealtimeEvent.Error(message.data.extractErrorMessage())
                 else -> DraftRealtimeEvent.Unknown(
@@ -193,6 +194,7 @@ class DraftRepositoryImpl(
         const val TYPE_STUDENT_JOINED_TEAM = "STUDENT_JOINED_TEAM"
         const val TYPE_TEAM_STRUCTURE_CHANGED = "TEAM_STRUCTURE_CHANGED"
         const val TYPE_TIME_TO_CHOOSE_STUDENT = "TIME_TO_CHOOSE_STUDENT"
+        const val TYPE_AUTO_SELECTION_PERFORMED = "AUTO_SELECTION_PERFORMED"
         const val TYPE_DRAFT_ENDED = "DRAFT_ENDED"
         const val TYPE_ERROR = "ERROR"
     }

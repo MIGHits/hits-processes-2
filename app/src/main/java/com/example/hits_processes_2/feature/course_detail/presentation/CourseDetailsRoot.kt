@@ -479,7 +479,7 @@ private fun ParticipantRow(
                         )
                     }
                 }
-                if (participant.role != CourseDetailsRole.STUDENT) {
+                if (false && participant.role != CourseDetailsRole.STUDENT) {
                     IconButton(onClick = { onDemoteParticipant(participant) }) {
                         Icon(
                             imageVector = Icons.Default.KeyboardArrowDown,

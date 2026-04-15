@@ -9,7 +9,9 @@ data class TaskCreationUiState(
     val deadlineMillis: Long? = null,
     val attachedFiles: List<SelectedFileAttachment> = emptyList(),
     val teamFormationRule: TeamFormationRule? = null,
+    val finalizationRule: TaskAnswerFinalizationRule? = null,
     val teamCount: String = "1",
     val isTeamFormationDropdownExpanded: Boolean = false,
+    val isFinalizationDropdownExpanded: Boolean = false,
     val isCreating: Boolean = false,
 )

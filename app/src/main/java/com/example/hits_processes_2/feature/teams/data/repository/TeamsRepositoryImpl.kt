@@ -15,6 +15,12 @@ import com.example.hits_processes_2.feature.teams.domain.model.TeamMember
 import com.example.hits_processes_2.feature.teams.domain.repository.TeamsRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import retrofit2.Response
 
 class TeamsRepositoryImpl(
@@ -104,16 +110,21 @@ class TeamsRepositoryImpl(
     }
 
     override suspend fun evaluateTeamAnswer(
-        taskAnswerId: String,
+        teamFinalAnswerId: String,
         grade: Int,
     ): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             val response = api.evaluateTaskAnswer(
-                taskAnswerId = taskAnswerId,
-                request = TaskRateRequestDto(rate = grade),
+                teamFinalTaskAnswerId = teamFinalAnswerId,
+                request = TaskRateRequestDto(score = grade),
             )
             if (response.isSuccessful) {
-                Result.success(Unit)
+                val backendError = response.body()?.toBackendError()
+                if (backendError != null) {
+                    Result.failure(backendError)
+                } else {
+                    Result.success(Unit)
+                }
             } else {
                 Result.failure(response.toTeamsException("Не удалось сохранить оценку"))
             }
@@ -152,6 +163,10 @@ class TeamsException(
     override val message: String,
 ) : Exception(message)
 
+private val teamsErrorJson = Json {
+    ignoreUnknownKeys = true
+}
+
 private fun Throwable.toTeamsException(defaultMessage: String): TeamsException {
     return when (this) {
         is TeamsException -> this
@@ -161,6 +176,38 @@ private fun Throwable.toTeamsException(defaultMessage: String): TeamsException {
 }
 
 private fun Response<*>.toTeamsException(defaultMessage: String): TeamsException {
-    val errorMessage = errorBody()?.string()
-    return TeamsException(code(), errorMessage?.ifBlank { null } ?: message().ifBlank { defaultMessage })
+    val rawError = errorBody()?.string()
+    val parsedError = rawError?.extractBackendErrorMessage()
+    return TeamsException(
+        code = code(),
+        message = parsedError
+            ?: rawError?.ifBlank { null }
+            ?: message().ifBlank { defaultMessage },
+    )
+}
+
+private fun JsonElement.toBackendError(): TeamsException? {
+    val root = runCatching { jsonObject }.getOrNull() ?: return null
+    val message = root["errorMessage"]
+        ?.jsonPrimitive
+        ?.contentOrNull
+        ?.ifBlank { null }
+        ?: return null
+    val code = root["statusCode"]
+        ?.jsonPrimitive
+        ?.intOrNull
+        ?: -1
+    return TeamsException(code = code, message = message)
+}
+
+private fun String.extractBackendErrorMessage(): String? {
+    if (isBlank()) return null
+
+    return runCatching {
+        teamsErrorJson.parseToJsonElement(this)
+            .jsonObject["errorMessage"]
+            ?.jsonPrimitive
+            ?.contentOrNull
+            ?.ifBlank { null }
+    }.getOrNull()
 }

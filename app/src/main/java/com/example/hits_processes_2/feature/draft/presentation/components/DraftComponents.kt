@@ -25,11 +25,17 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.hits_processes_2.feature.draft.presentation.DraftStudent
 import com.example.hits_processes_2.feature.draft.presentation.DraftTeamMember
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,6 +53,10 @@ fun DraftTopBar(
             }
         },
     )
+}
+
+private fun Int.formatTimer(): String {
+    return "${this / 60}:${(this % 60).toString().padStart(length = 2, padChar = '0')}"
 }
 
 @Composable
@@ -115,31 +125,65 @@ fun DraftMemberItem(
 @Composable
 fun DraftPickDialog(
     students: List<DraftStudent>,
+    timerSeconds: Int,
+    timerKey: Int,
     onDismiss: () -> Unit,
     onSelectStudent: (String) -> Unit,
 ) {
+    val initialSeconds = timerSeconds.coerceAtLeast(0)
+    var remainingSeconds by remember(timerKey, initialSeconds) {
+        mutableIntStateOf(initialSeconds)
+    }
+
+    LaunchedEffect(timerKey, initialSeconds) {
+        remainingSeconds = initialSeconds
+        while (remainingSeconds > 0) {
+            delay(1_000)
+            remainingSeconds -= 1
+        }
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Выберите студента") },
         text = {
-            if (students.isEmpty()) {
-                Text("Свободных студентов больше нет")
-            } else {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    shape = MaterialTheme.shapes.medium,
                 ) {
-                    items(students, key = DraftStudent::id) { student ->
-                        OutlinedCard(
-                            onClick = { onSelectStudent(student.id) },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text(
-                                text = student.fullName,
-                                style = MaterialTheme.typography.bodyLarge,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                            )
+                    Text(
+                        text = "Автовыбор через ${remainingSeconds.formatTimer()}",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                    )
+                }
+
+                if (students.isEmpty()) {
+                    Text("Свободных студентов больше нет")
+                } else {
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        items(students, key = DraftStudent::id) { student ->
+                            OutlinedCard(
+                                onClick = { onSelectStudent(student.id) },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(
+                                    text = student.fullName,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                )
+                            }
                         }
                     }
                 }

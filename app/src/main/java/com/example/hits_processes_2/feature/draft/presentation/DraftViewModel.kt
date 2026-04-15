@@ -59,6 +59,7 @@ class DraftViewModel(
                         draft = draft,
                         currentUserId = resolvedCurrentUserId,
                         isPickDialogVisible = isCurrentUserTurn,
+                        pickDialogGeneration = if (isCurrentUserTurn) 1 else 0,
                     )
                     if (isCurrentUserTurn) {
                         loadFreeStudents()
@@ -132,6 +133,7 @@ class DraftViewModel(
                 sendEffect(DraftUiEffect.OpenTeams)
                 content.copy(
                     draft = event.draft ?: content.draft.copy(isEnded = true),
+                    isPickDialogVisible = false,
                     lastRealtimeEvent = event,
                     errorMessage = null,
                 )
@@ -155,6 +157,11 @@ class DraftViewModel(
                 errorMessage = null,
             )
             is DraftRealtimeEvent.TeamStructureChanged -> content.withTeamUpdate(event.changedTeam, event)
+            DraftRealtimeEvent.AutoSelectionPerformed -> content.copy(
+                isPickDialogVisible = false,
+                lastRealtimeEvent = event,
+                errorMessage = null,
+            )
             DraftRealtimeEvent.TimeToChooseStudent,
             is DraftRealtimeEvent.Unknown -> content.copy(
                 lastRealtimeEvent = event,
@@ -164,7 +171,9 @@ class DraftViewModel(
         _state.value = updatedState
         if (event is DraftRealtimeEvent.TimeToChooseStudent) {
             loadFreeStudents()
-            updateContent { copy(isPickDialogVisible = true) }
+            updateContent { withPickDialogVisibility(isVisible = true, resetTimer = true) }
+        } else if (event is DraftRealtimeEvent.AutoSelectionPerformed) {
+            refreshDraftAfterRealtimeUpdate(openPickDialogIfCurrentTurn = false)
         } else if (event is DraftRealtimeEvent.StudentJoinedTeam) {
             refreshDraftAfterRealtimeUpdate()
         } else if (event is DraftRealtimeEvent.TeamStructureChanged) {
@@ -186,10 +195,9 @@ class DraftViewModel(
     ): DraftScreenState.Content {
         return copy(
             draft = draft,
-            isPickDialogVisible = draft.isCaptainTurn(currentUserId),
             lastRealtimeEvent = event,
             errorMessage = null,
-        )
+        ).withPickDialogVisibility(draft.isCaptainTurn(currentUserId))
     }
 
     private fun DraftScreenState.Content.withPickTurnsUpdate(
@@ -203,10 +211,9 @@ class DraftViewModel(
         )
         return copy(
             draft = draft,
-            isPickDialogVisible = draft.isCaptainTurn(currentUserId),
             lastRealtimeEvent = event,
             errorMessage = null,
-        )
+        ).withPickDialogVisibility(draft.isCaptainTurn(currentUserId))
     }
 
     private fun DraftScreenState.Content.withTeamUpdate(
@@ -249,17 +256,19 @@ class DraftViewModel(
         }
     }
 
-    private suspend fun refreshDraftAfterPick() {
+    private suspend fun refreshDraftAfterPick(openPickDialogIfCurrentTurn: Boolean = true) {
         if (draftId.isBlank()) return
         getDraftUseCase(draftId)
             .onSuccess { draft ->
                 var shouldLoadFreeStudents = false
                 updateContent {
-                    shouldLoadFreeStudents = draft.isCaptainTurn(currentUserId)
+                    shouldLoadFreeStudents = openPickDialogIfCurrentTurn && draft.isCaptainTurn(currentUserId)
                     copy(
                         draft = draft,
-                        isPickDialogVisible = shouldLoadFreeStudents,
                         errorMessage = null,
+                    ).withPickDialogVisibility(
+                        isVisible = shouldLoadFreeStudents,
+                        resetTimer = shouldLoadFreeStudents,
                     )
                 }
                 if (shouldLoadFreeStudents) {
@@ -268,11 +277,25 @@ class DraftViewModel(
             }
     }
 
-    private fun refreshDraftAfterRealtimeUpdate() {
+    private fun refreshDraftAfterRealtimeUpdate(openPickDialogIfCurrentTurn: Boolean = true) {
         if (draftId.isBlank()) return
         viewModelScope.launch {
-            refreshDraftAfterPick()
+            refreshDraftAfterPick(openPickDialogIfCurrentTurn)
         }
+    }
+
+    private fun DraftScreenState.Content.withPickDialogVisibility(
+        isVisible: Boolean,
+        resetTimer: Boolean = false,
+    ): DraftScreenState.Content {
+        return copy(
+            isPickDialogVisible = isVisible,
+            pickDialogGeneration = if (isVisible && (!isPickDialogVisible || resetTimer)) {
+                pickDialogGeneration + 1
+            } else {
+                pickDialogGeneration
+            },
+        )
     }
 
     private fun updateContent(transform: DraftScreenState.Content.() -> DraftScreenState.Content) {

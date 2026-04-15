@@ -4,13 +4,17 @@ import com.example.hits_processes_2.feature.task_detail.data.remote.TaskDetailAp
 import com.example.hits_processes_2.feature.task_detail.data.repository.TaskDetailRepositoryImpl
 import com.example.hits_processes_2.feature.task_detail.domain.repository.TaskDetailRepository
 import com.example.hits_processes_2.feature.task_detail.domain.usecase.AttachTaskAnswerUseCase
+import com.example.hits_processes_2.feature.task_detail.domain.usecase.GetAllTeamTaskAnswersUseCase
 import com.example.hits_processes_2.feature.task_detail.domain.usecase.GetAllUserTaskAnswersUseCase
+import com.example.hits_processes_2.feature.task_detail.domain.usecase.GetAllUserVotedTaskAnswersUseCase
 import com.example.hits_processes_2.feature.task_detail.domain.usecase.GetMyTeamUseCase
 import com.example.hits_processes_2.feature.task_detail.domain.usecase.GetTeamFinalAnswerUseCase
 import com.example.hits_processes_2.feature.task_detail.domain.usecase.GetTaskDetailUseCase
+import com.example.hits_processes_2.feature.task_detail.domain.usecase.SelectTaskAnswerUseCase
 import com.example.hits_processes_2.feature.task_detail.domain.usecase.SubmitTaskAnswerUseCase
 import com.example.hits_processes_2.feature.task_detail.domain.usecase.UnattachTaskAnswerUseCase
 import com.example.hits_processes_2.feature.task_detail.domain.usecase.UnsubmitTaskAnswerUseCase
+import com.example.hits_processes_2.feature.task_detail.domain.usecase.VoteForTaskAnswerUseCase
 import com.example.hits_processes_2.feature.task_detail.presentation.TaskDetailViewModel
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.core.qualifier.named
@@ -29,10 +33,14 @@ val taskDetailModule = module {
     factory { GetMyTeamUseCase(get()) }
     factory { AttachTaskAnswerUseCase(get()) }
     factory { GetAllUserTaskAnswersUseCase(get()) }
+    factory { GetAllTeamTaskAnswersUseCase(get()) }
+    factory { GetAllUserVotedTaskAnswersUseCase(get()) }
     factory { GetTeamFinalAnswerUseCase(get()) }
+    factory { SelectTaskAnswerUseCase(get()) }
     factory { SubmitTaskAnswerUseCase(get()) }
     factory { UnattachTaskAnswerUseCase(get()) }
     factory { UnsubmitTaskAnswerUseCase(get()) }
+    factory { VoteForTaskAnswerUseCase(get()) }
 
     viewModel { parameters ->
         TaskDetailViewModel(
@@ -44,7 +52,11 @@ val taskDetailModule = module {
             getMyTeamUseCase = get(),
             attachTaskAnswerUseCase = get(),
             getAllUserTaskAnswersUseCase = get(),
+            getAllTeamTaskAnswersUseCase = get(),
+            getAllUserVotedTaskAnswersUseCase = get(),
             getTeamFinalAnswerUseCase = get(),
+            voteForTaskAnswerUseCase = get(),
+            selectTaskAnswerUseCase = get(),
             submitTaskAnswerUseCase = get(),
             unsubmitTaskAnswerUseCase = get(),
             unattachTaskAnswerUseCase = get(),

@@ -26,9 +26,10 @@ import com.example.hits_processes_2.ui.theme.Hitsprocesses2Theme
 @Composable
 fun VotingScreen(
     options: List<VotingOption>,
-    selectedOptionId: Int?,
+    selectedOptionId: String?,
     onNavigateBack: () -> Unit,
-    onSelectOption: (Int) -> Unit,
+    onSelectOption: (String) -> Unit,
+    onDownloadSolution: (String) -> Unit,
     onConfirmVote: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -49,6 +50,7 @@ fun VotingScreen(
                 VotingOptionCard(
                     option = option,
                     isSelected = option.id == selectedOptionId,
+                    onDownloadClick = onDownloadSolution,
                     onClick = { onSelectOption(option.id) },
                 )
             }
@@ -90,9 +92,10 @@ private fun VotingScreenPreview() {
     Hitsprocesses2Theme {
         VotingScreen(
             options = previewVotingOptions,
-            selectedOptionId = 2,
+            selectedOptionId = "2",
             onNavigateBack = {},
             onSelectOption = {},
+            onDownloadSolution = {},
             onConfirmVote = {},
         )
     }

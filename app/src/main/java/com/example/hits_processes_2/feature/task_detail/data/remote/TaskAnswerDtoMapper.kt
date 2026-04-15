@@ -3,14 +3,25 @@ package com.example.hits_processes_2.feature.task_detail.data.remote
 import com.example.hits_processes_2.feature.file_attachment.domain.model.UploadedFileAttachment
 import com.example.hits_processes_2.feature.task_detail.data.remote.dto.TaskAnswerDto
 import com.example.hits_processes_2.feature.task_detail.domain.model.TaskAnswer
+import com.example.hits_processes_2.feature.task_detail.domain.model.TaskAuthor
 import com.example.hits_processes_2.feature.task_detail.domain.model.TeamFinalAnswer
 import com.example.hits_processes_2.feature.teams.data.remote.dto.FinalTaskAnswerDto
 
 fun TaskAnswerDto.toDomain(): TaskAnswer = TaskAnswer(
     id = id,
     files = files.orEmpty().map { UploadedFileAttachment(id = it.id, fileName = it.fileName.orEmpty()) },
+    user = user?.let {
+        TaskAuthor(
+            id = it.id,
+            firstName = it.firstName,
+            lastName = it.lastName,
+            email = it.email,
+        )
+    },
     uploadedAtIso = uploadedAt,
     finalDecision = finalDecision,
+    votesCount = votesCount,
+    votedUserIds = votedUserIds,
 )
 
 fun FinalTaskAnswerDto.toDomain(): TeamFinalAnswer = TeamFinalAnswer(

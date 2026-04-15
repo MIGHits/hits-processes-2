@@ -17,6 +17,7 @@ fun TaskDetailDto.toDomain(): TaskDetail = TaskDetail(
     draftId = draftId,
     maxScore = maxScore,
     teamFormationType = teamFormationType.orEmpty(),
+    taskAnswerFinalizationType = taskAnswerFinalizationType.orEmpty(),
     author = author?.toDomain(),
     files = files.orEmpty().map(TaskFileDto::toDomain),
 )

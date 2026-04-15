@@ -6,6 +6,7 @@ data class CreateTaskData(
     val maxScore: Int,
     val deadlineTimeIso: String,
     val teamFormationType: TeamFormationType,
+    val taskAnswerFinalizationType: TaskAnswerFinalizationType,
     val teamsAmount: Int,
     val fileIds: List<String>,
 )

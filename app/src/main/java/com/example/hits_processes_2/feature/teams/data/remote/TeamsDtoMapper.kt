@@ -14,6 +14,8 @@ fun TeamDto.toDomain(
 ): Team {
     val captainId = captain?.id
     val uniqueMembers = (members + listOfNotNull(captain)).distinctBy(UserDto::id)
+    val embeddedFinalAnswer = finalAnswer ?: finalTaskAnswer
+    val embeddedFinalAnswerFile = embeddedFinalAnswer?.taskAnswer?.files?.firstOrNull()
 
     return Team(
         id = id,
@@ -25,22 +27,17 @@ fun TeamDto.toDomain(
                 isCaptain = member.id == captainId,
             )
         },
-        submission = submission?.fileName,
-        submittedAt = submittedAt,
-        status = status.toSubmissionStatus(),
-        grade = grade,
-    )
-}
-
-fun Team.withFinalAnswer(finalAnswer: FinalTaskAnswerDto?): Team {
-    val file = finalAnswer?.taskAnswer?.files?.firstOrNull()
-    return copy(
-        taskAnswerId = finalAnswer?.taskAnswer?.id ?: taskAnswerId,
-        submissionFileId = file?.id ?: submissionFileId,
-        submission = file?.fileName ?: submission,
-        submittedAt = finalAnswer?.submittedAt ?: submittedAt,
-        status = finalAnswer?.status.toFinalAnswerStatus() ?: status,
-        grade = finalAnswer?.score ?: grade,
+        finalAnswerId = embeddedFinalAnswer?.id
+            ?: finalAnswerId
+            ?: finalTaskAnswerId
+            ?: teamFinalAnswerId
+            ?: teamFinalTaskAnswerId,
+        taskAnswerId = embeddedFinalAnswer?.taskAnswer?.id ?: taskAnswerId,
+        submissionFileId = submission?.id ?: embeddedFinalAnswerFile?.id,
+        submission = submission?.fileName ?: embeddedFinalAnswerFile?.fileName,
+        submittedAt = submittedAt ?: embeddedFinalAnswer?.submittedAt,
+        status = embeddedFinalAnswer?.status.toFinalAnswerStatus() ?: status.toSubmissionStatus(),
+        grade = grade ?: score ?: embeddedFinalAnswer?.score,
     )
 }
 
@@ -64,6 +61,9 @@ private fun String?.toSubmissionStatus(): TeamSubmissionStatus {
     return when (this) {
         "SUBMITTED" -> TeamSubmissionStatus.SUBMITTED
         "LATE" -> TeamSubmissionStatus.LATE
+        "COMPLETED" -> TeamSubmissionStatus.SUBMITTED
+        "COMPLETED_AFTER_DEADLINE", "COMPETED_AFTER_DEADLINE" -> TeamSubmissionStatus.LATE
+        "NOT_COMPLETED" -> TeamSubmissionStatus.NOT_SUBMITTED
         else -> TeamSubmissionStatus.NOT_SUBMITTED
     }
 }
@@ -75,4 +75,17 @@ private fun String?.toFinalAnswerStatus(): TeamSubmissionStatus? {
         "NOT_COMPLETED" -> TeamSubmissionStatus.NOT_SUBMITTED
         else -> null
     }
+}
+
+fun Team.withFinalAnswer(finalAnswer: FinalTaskAnswerDto?): Team {
+    val file = finalAnswer?.taskAnswer?.files?.firstOrNull()
+    return copy(
+        finalAnswerId = finalAnswer?.id ?: finalAnswerId,
+        taskAnswerId = finalAnswer?.taskAnswer?.id ?: taskAnswerId,
+        submissionFileId = file?.id ?: submissionFileId,
+        submission = file?.fileName ?: submission,
+        submittedAt = finalAnswer?.submittedAt ?: submittedAt,
+        status = finalAnswer?.status.toFinalAnswerStatus() ?: status,
+        grade = finalAnswer?.score ?: grade,
+    )
 }

@@ -7,6 +7,7 @@ data class Draft(
     val teams: List<DraftTeam>,
     val isStarted: Boolean,
     val isEnded: Boolean,
+    val timeToPickSeconds: Int?,
 )
 
 data class DraftPickTurn(

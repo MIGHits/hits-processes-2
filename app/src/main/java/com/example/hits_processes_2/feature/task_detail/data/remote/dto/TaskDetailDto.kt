@@ -16,4 +16,5 @@ data class TaskDetailDto(
     @SerialName("draftId") val draftId: String? = null,
     @SerialName("maxScore") val maxScore: Int = 0,
     @SerialName("teamFormationType") val teamFormationType: String? = null,
+    @SerialName("taskAnswerFinalizationType") val taskAnswerFinalizationType: String? = null,
 )

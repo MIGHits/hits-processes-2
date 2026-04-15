@@ -25,6 +25,14 @@ interface TaskDetailRepository {
 
     suspend fun getAllUserTaskAnswers(taskId: String): Result<List<TaskAnswer>>
 
+    suspend fun getAllTeamTaskAnswers(taskId: String, teamId: String): Result<List<TaskAnswer>>
+
+    suspend fun getAllUserVotedTaskAnswers(taskId: String): Result<List<TaskAnswer>>
+
+    suspend fun voteForAnswer(taskId: String, answerId: String): Result<TeamFinalAnswer>
+
+    suspend fun selectAnswer(taskId: String, answerId: String): Result<Unit>
+
     suspend fun getTeamFinalAnswer(taskId: String, teamId: String): Result<TeamFinalAnswer?>
 
     suspend fun unattachAnswer(taskId: String, taskAnswerId: String): Result<TeamFinalAnswer?>

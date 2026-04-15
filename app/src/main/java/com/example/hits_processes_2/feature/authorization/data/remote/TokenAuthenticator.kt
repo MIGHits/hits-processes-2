@@ -21,19 +21,22 @@ class TokenAuthenticator(
             return null
         }
 
-        val currentTokens = tokenStorage.getTokens() ?: run {
-            expireSession()
-            return null
+        val requestAccessToken = response.request.bearerToken()
+
+        synchronized(this) {
+            val currentTokens = tokenStorage.getTokens() ?: run {
+                expireSession()
+                return null
+            }
+
+            if (requestAccessToken != null && requestAccessToken != currentTokens.accessToken) {
+                return response.request.withBearerToken(currentTokens.accessToken)
+            }
+
+            val newTokens = runBlocking { refreshTokens(currentTokens.refreshToken) } ?: return null
+            tokenStorage.saveTokens(newTokens)
+            return response.request.withBearerToken(newTokens.accessToken)
         }
-
-        val refreshToken = currentTokens.refreshToken
-        val newTokens = runBlocking { refreshTokens(refreshToken) } ?: return null
-
-        tokenStorage.saveTokens(newTokens)
-
-        return response.request.newBuilder()
-            .header("Authorization", "Bearer ${newTokens.accessToken}")
-            .build()
     }
 
     private suspend fun refreshTokens(refreshToken: String): TokenPair? {
@@ -60,6 +63,18 @@ class TokenAuthenticator(
 
 private fun Response.isRefreshRequest(): Boolean =
     request.url.encodedPath.contains("refresh-tokens")
+
+private fun Request.bearerToken(): String? {
+    return header("Authorization")
+        ?.removePrefix("Bearer ")
+        ?.takeIf { it.isNotBlank() }
+}
+
+private fun Request.withBearerToken(token: String): Request {
+    return newBuilder()
+        .header("Authorization", "Bearer $token")
+        .build()
+}
 
 private val Response.responseCount: Int
     get() = generateSequence(this) { it.priorResponse }.count()
